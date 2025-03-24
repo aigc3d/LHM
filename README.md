@@ -18,8 +18,7 @@
 ## 📢 Latest Updates
 **[March 24, 2025]** Is SAM2 difficult to install😭😭😭? 👉 It is compatible with rembg!<br>
 **[March 20, 2025]** Release video motion processing pipeline<br>
-**[March 19, 2025]** Local Gradio App.py<br>
-**[March 19, 2025]** Gradio Optimization:  Faster and More Stable 🔥🔥🔥 <br>
+**[March 19, 2025]** Local Gradio App.py optimization:  Faster and More Stable 🔥🔥🔥 <br>
 **[March 15, 2025]** Inference Time Optimization:  30% Faster <br>
 **[March 13, 2025]** Initial release with:  
 ✅ Inference codebase  
