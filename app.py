@@ -1,4 +1,4 @@
-# Copyright (c) 2023-2024, Qi Zuo
+# Copyright (c) 2023-2024, Qi Zuo & Lingteng Qiu
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -37,7 +37,13 @@ from omegaconf import OmegaConf
 
 from engine.pose_estimation.pose_estimator import PoseEstimator
 from engine.SegmentAPI.base import Bbox
-from engine.SegmentAPI.SAM import Bbox, SAM2Seg
+
+try:
+    from engine.SegmentAPI.SAM import SAM2Seg
+except:
+    print("\033[31mNo SAM2 found! Try using rembg to remove the background. This may slightly degrade the quality of the results!\033[0m")
+    from rembg import remove
+
 from LHM.runners.infer.utils import (
     calc_new_tgt_size_by_aspect,
     center_crop_according_to_mask,
@@ -79,6 +85,8 @@ def query_model_name(model_name):
         if not os.path.exists(model_path):
             model_url = MODEL_CARD[model_name]
             download_extract_tar_from_url(model_url, './')
+    else:
+        model_path = model_name
     return model_path
 
 def infer_preprocess_image(
@@ -423,8 +431,14 @@ def demo_lhm(pose_estimator, face_detector, parsing_net, lhm, cfg):
         vis_motion = cfg.get("vis_motion", False)  # False
 
         with torch.no_grad():
-            parsing_out = parsing_net(img_path=image_raw, bbox=None)
-            parsing_mask = (parsing_out.masks * 255).astype(np.uint8)
+            if parsing_net is not None:
+                parsing_out = parsing_net(img_path=image_raw, bbox=None)
+                parsing_mask = (parsing_out.masks * 255).astype(np.uint8)
+            else:
+                img_np = cv2.imread(image_raw)
+                remove_np = remove(img_np)
+                parsing_mask = remove_np[...,3]
+
             shape_pose = pose_estimator(image_raw)
         assert shape_pose.is_full_body, f"The input image is illegal, {shape_pose.msg}"
 
@@ -754,7 +768,11 @@ def launch_gradio_app():
     )
     pose_estimator.to('cuda')
     pose_estimator.device = 'cuda'
-    parsingnet = SAM2Seg()
+    try:
+        parsingnet = SAM2Seg()
+    except: 
+        parsingnet = None
+
     accelerator = Accelerator()
 
     cfg, cfg_train = parse_configs()

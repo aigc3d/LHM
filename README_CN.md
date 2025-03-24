@@ -1,5 +1,9 @@
 # <span><img src="./assets/LHM_logo_parsing.png" height="35" style="vertical-align: top;"> - 官方 PyTorch 实现</span>
 
+# <div align="center">LHM: Large Animatable Human Reconstruction Model for Single Image to 3D in Seconds<div> 
+###  <p align="center"> [Lingteng Qiu<sup>*</sup>](https://lingtengqiu.github.io/), [Xiaodong Gu<sup>*</sup>](https://scholar.google.com.hk/citations?user=aJPO514AAAAJ&hl=zh-CN&oi=ao), [Peihao Li<sup>*</sup>](https://liphao99.github.io/), [Qi Zuo<sup>*</sup>](https://scholar.google.com/citations?user=UDnHe2IAAAAJ&hl=zh-CN)<br>[Weichao Shen](https://scholar.google.com/citations?user=7gTmYHkAAAAJ&hl=zh-CN), [Junfei Zhang](https://scholar.google.com/citations?user=oJjasIEAAAAJ&hl=en), [Kejie Qiu](https://sites.google.com/site/kejieqiujack/home), [Weihao Yuan](https://weihao-yuan.com/), <br>[Guanying Chen<sup>+</sup>](https://guanyingc.github.io/), [Zilong Dong<sup>+</sup>](https://baike.baidu.com/item/%E8%91%A3%E5%AD%90%E9%BE%99/62931048), [Liefeng Bo](https://scholar.google.com/citations?user=FJwtMf0AAAAJ&hl=zh-CN)</p>
+##  <p align="center"> 阿里巴巴通义实验室</p>
+
 [![项目主页](https://img.shields.io/badge/🌐-项目主页-blueviolet)](https://lingtengqiu.github.io/LHM/)
 [![arXiv论文](https://img.shields.io/badge/📜-arXiv:2503-10625)](https://arxiv.org/pdf/2503.10625)
 [![HuggingFace](https://img.shields.io/badge/🤗-HuggingFace_Space-blue)](https://huggingface.co/spaces/DyrusQZ/LHM)
@@ -10,6 +14,7 @@
 </p>
 
 ## 📢 最新动态
+**[2025年3月24日]** SAM2难装 😭😭😭? 👉 那就用rembg吧!<br>
 **[2025年3月20日]** 发布视频动作处理脚本<br>
 **[2025年3月19日]** 本地部署 Gradio<br>
 **[2025年3月19日]** HuggingFace Demo：更快更稳定 <br>
@@ -41,9 +46,11 @@ cd LHM
 ```
 # cuda 11.8
 sh ./install_cu118.sh
+pip install rembg
 
 # cuda 12.1
 sh ./install_cu121.sh
+pip install rembg
 ```
 环境已在 python3.10、CUDA 11.8 和 CUDA 12.1 下测试通过。
 

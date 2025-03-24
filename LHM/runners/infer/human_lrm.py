@@ -19,7 +19,14 @@ from PIL import Image
 from tqdm.auto import tqdm
 
 from engine.pose_estimation.pose_estimator import PoseEstimator
-from engine.SegmentAPI.SAM import Bbox, SAM2Seg
+from engine.SegmentAPI.base import Bbox
+
+try:
+    from engine.SegmentAPI.SAM import SAM2Seg
+except:
+    print("\033[31mNo SAM2 found! Try using rembg to remove the background. This may slightly degrade the quality of the results!\033[0m")
+    from rembg import remove
+
 from LHM.datasets.cam_utils import (
     build_camera_principle,
     build_camera_standard,
@@ -316,7 +323,10 @@ class HumanLRMInferrer(Inferrer):
         self.pose_estimator = PoseEstimator(
             "./pretrained_models/human_model_files/", device=avaliable_device()
         )
-        self.parsingnet = SAM2Seg()
+        try:
+            self.parsingnet = SAM2Seg()
+        except:
+            self.parsingnet = None 
 
         self.model: ModelHumanLRM = self._build_model(self.cfg).to(self.device)
 
@@ -442,12 +452,12 @@ class HumanLRMInferrer(Inferrer):
 
     @torch.no_grad()
     def parsing(self, img_path):
+
         parsing_out = self.parsingnet(img_path=img_path, bbox=None)
 
         alpha = (parsing_out.masks * 255).astype(np.uint8)
 
         return alpha
-
 
     def infer_mesh(
         self,
@@ -482,7 +492,6 @@ class HumanLRMInferrer(Inferrer):
             print("w/o head input!")
             src_head_rgb = np.zeros((112, 112, 3), dtype=np.uint8)
 
-        import cv2
 
         try:
             src_head_rgb = cv2.resize(
@@ -577,7 +586,13 @@ class HumanLRMInferrer(Inferrer):
         motion_img_need_mask = self.cfg.get("motion_img_need_mask", False)  # False
         vis_motion = self.cfg.get("vis_motion", False)  # False
 
-        parsing_mask = self.parsing(image_path)
+
+        if self.parsingnet is not None:
+            parsing_mask = self.parsing(image_path)
+        else:
+            img_np = cv2.imread(image_path)
+            remove_np = remove(img_np)
+            parsing_mask = remove_np[...,3]
 
         # prepare reference image
         image, _, _ = infer_preprocess_image(
@@ -599,7 +614,6 @@ class HumanLRMInferrer(Inferrer):
             print("w/o head input!")
             src_head_rgb = np.zeros((112, 112, 3), dtype=np.uint8)
 
-        import cv2
 
         try:
             src_head_rgb = cv2.resize(
@@ -885,7 +899,6 @@ class HumanLRMVideoInferrer(HumanLRMInferrer):
         )
         src_head_rgb = self.crop_face_image(image_path)
 
-        import cv2
 
         try:
             src_head_rgb = cv2.resize(
