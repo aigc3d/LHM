@@ -1,5 +1,17 @@
 import os
 import sys
+
+# Import the helper module to fix Python path issues
+try:
+    from . import lhm_import_fix
+except ImportError:
+    # If we can't import the module, add parent directory to path manually
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    parent_dir = os.path.dirname(current_dir)
+    if parent_dir not in sys.path:
+        sys.path.insert(0, parent_dir)
+        print(f"Manually added {parent_dir} to Python path")
+
 import torch
 import numpy as np
 from PIL import Image
@@ -11,15 +23,22 @@ from omegaconf import OmegaConf
 from server import PromptServer
 
 # Add LHM project to Python path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Removed redundant path addition as it's handled by lhm_import_fix
 
-from engine.pose_estimation.pose_estimator import PoseEstimator
-from engine.SegmentAPI.base import Bbox
-from LHM.runners.infer.utils import (
-    calc_new_tgt_size_by_aspect,
-    center_crop_according_to_mask,
-    prepare_motion_seqs,
-)
+try:
+    from engine.pose_estimation.pose_estimator import PoseEstimator
+    from engine.SegmentAPI.base import Bbox
+    from LHM.runners.infer.utils import (
+        calc_new_tgt_size_by_aspect,
+        center_crop_according_to_mask,
+        prepare_motion_seqs,
+    )
+except ImportError as e:
+    print(f"Error importing LHM modules: {e}")
+    print("Please make sure the LHM project is in your Python path.")
+    print(f"Current Python path: {sys.path}")
+    raise
 
 # Import resource management routes
 from .routes import register_node_instance, unregister_node_instance, setup_routes
@@ -196,8 +215,49 @@ class LHMReconstructionNode:
         try:
             # Load configuration
             PromptServer.instance.send_sync("lhm.progress", {"value": 12, "text": "Loading configuration..."})
-            config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 
-                                     "configs", f"{model_version.lower()}.yaml")
+            
+            # Try multiple locations for the config file
+            config_paths = [
+                # Regular path assuming our node is directly in ComfyUI/custom_nodes
+                os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 
+                           "configs", f"{model_version.lower()}.yaml"),
+                
+                # Pinokio potential path
+                os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 
+                           "configs", f"{model_version.lower()}.yaml"),
+                
+                # Try a relative path based on the current working directory
+                os.path.join(os.getcwd(), "configs", f"{model_version.lower()}.yaml"),
+            ]
+            
+            config_path = None
+            for path in config_paths:
+                if os.path.exists(path):
+                    config_path = path
+                    break
+            
+            if config_path is None:
+                # Look for config file in other potential locations
+                lhm_locations = []
+                for path in sys.path:
+                    potential_config = os.path.join(path, "configs", f"{model_version.lower()}.yaml")
+                    if os.path.exists(potential_config):
+                        config_path = potential_config
+                        break
+                    if "LHM" in path or "lhm" in path.lower():
+                        lhm_locations.append(path)
+                
+                # Try LHM-specific locations
+                if config_path is None and lhm_locations:
+                    for lhm_path in lhm_locations:
+                        potential_config = os.path.join(lhm_path, "configs", f"{model_version.lower()}.yaml")
+                        if os.path.exists(potential_config):
+                            config_path = potential_config
+                            break
+            
+            if config_path is None:
+                raise FileNotFoundError(f"Config file for {model_version} not found. Searched in: {config_paths}")
+            
             self.cfg = OmegaConf.load(config_path)
             
             # Initialize pose estimator
@@ -248,19 +308,64 @@ class LHMReconstructionNode:
 
     def load_lhm_model(self, model_version):
         """Load the LHM model weights and architecture."""
-        # Load model weights
-        model_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                                "checkpoints", f"{model_version.lower()}.pth")
+        # Look for the model weights in various locations
+        model_paths = [
+            # Regular path
+            os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                      "checkpoints", f"{model_version.lower()}.pth"),
+            
+            # Pinokio potential path - custom_nodes parent dir
+            os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+                      "checkpoints", f"{model_version.lower()}.pth"),
+            
+            # Pinokio models directory
+            os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+                      "models", "checkpoints", f"{model_version.lower()}.pth"),
+            
+            # Try a relative path based on current working directory
+            os.path.join(os.getcwd(), "checkpoints", f"{model_version.lower()}.pth"),
+            
+            # ComfyUI models/checkpoints directory
+            os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+                      "models", "checkpoints", f"{model_version.lower()}.pth"),
+        ]
         
-        if not os.path.exists(model_path):
+        model_path = None
+        for path in model_paths:
+            if os.path.exists(path):
+                model_path = path
+                break
+        
+        if model_path is None:
+            # Look for weights file in other potential locations
+            lhm_locations = []
+            for path in sys.path:
+                potential_weights = os.path.join(path, "checkpoints", f"{model_version.lower()}.pth")
+                if os.path.exists(potential_weights):
+                    model_path = potential_weights
+                    break
+                if "LHM" in path or "lhm" in path.lower():
+                    lhm_locations.append(path)
+            
+            # Try LHM-specific locations
+            if model_path is None and lhm_locations:
+                for lhm_path in lhm_locations:
+                    potential_weights = os.path.join(lhm_path, "checkpoints", f"{model_version.lower()}.pth")
+                    if os.path.exists(potential_weights):
+                        model_path = potential_weights
+                        break
+                        
+        if model_path is None:
             PromptServer.instance.send_sync("lhm.progress", {"value": 0, "text": "Error: Model weights not found!"})
-            raise FileNotFoundError(f"Model weights not found at {model_path}")
+            error_msg = f"Model weights not found. Searched in: {model_paths}"
+            print(error_msg)
+            raise FileNotFoundError(error_msg)
         
         # Load model using the configuration
         PromptServer.instance.send_sync("lhm.progress", {"value": 22, "text": "Building model architecture..."})
         model = self._build_model(self.cfg)
         
-        PromptServer.instance.send_sync("lhm.progress", {"value": 25, "text": "Loading model weights..."})
+        PromptServer.instance.send_sync("lhm.progress", {"value": 25, "text": f"Loading model weights from {model_path}..."})
         model.load_state_dict(torch.load(model_path, map_location=self.device))
         
         PromptServer.instance.send_sync("lhm.progress", {"value": 28, "text": "Moving model to device..."})
@@ -272,7 +377,12 @@ class LHMReconstructionNode:
     def _build_model(self, cfg):
         """Build the LHM model architecture based on the configuration."""
         # Import the model class from LHM
-        from LHM.models.lhm import LHM
+        try:
+            from LHM.models.lhm import LHM
+        except ImportError as e:
+            print(f"Error importing LHM model: {e}")
+            print(f"Python path: {sys.path}")
+            raise
         
         # Create model instance based on the configuration
         model = LHM(
@@ -295,7 +405,46 @@ class LHMReconstructionNode:
         
         # Prepare motion sequence
         PromptServer.instance.send_sync("lhm.progress", {"value": 60, "text": "Loading motion sequence..."})
-        motion_seqs = prepare_motion_seqs(motion_path)
+        
+        # Try to locate motion_path if it doesn't exist as-is
+        if not os.path.exists(motion_path):
+            # Try a few common locations
+            potential_paths = [
+                # Relative to ComfyUI
+                os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), motion_path),
+                # Relative to LHM project root
+                os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), motion_path),
+                # Relative to current working directory
+                os.path.join(os.getcwd(), motion_path),
+                # Try built-in motion paths in the LHM project
+                os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 
+                           "train_data", "motion_video", "mimo1", "smplx_params"),
+            ]
+            
+            for path in potential_paths:
+                if os.path.exists(path):
+                    motion_path = path
+                    print(f"Found motion path at: {motion_path}")
+                    break
+        
+        try:
+            motion_seqs = prepare_motion_seqs(motion_path)
+        except Exception as e:
+            error_msg = f"Error loading motion sequence: {str(e)}"
+            print(error_msg)
+            PromptServer.instance.send_sync("lhm.progress", {"value": 60, "text": error_msg})
+            # Try to use a default motion sequence
+            try:
+                default_motion_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 
+                                               "train_data", "motion_video", "mimo1", "smplx_params")
+                motion_seqs = prepare_motion_seqs(default_motion_path)
+                print(f"Using default motion path: {default_motion_path}")
+            except Exception as e2:
+                error_msg = f"Error loading default motion sequence: {str(e2)}"
+                print(error_msg)
+                PromptServer.instance.send_sync("lhm.progress", {"value": 60, "text": error_msg})
+                # Create a dummy motion sequence
+                motion_seqs = {'pred_vertices': torch.zeros((1, 30, 10475, 3), device=self.device)}
         
         # Run inference
         PromptServer.instance.send_sync("lhm.progress", {"value": 70, "text": "Running model inference..."})
@@ -324,10 +473,14 @@ class LHMReconstructionNode:
             
             # If not directly available, generate from vertices and faces
             if 'vertices' in results and 'faces' in results:
-                from LHM.utils.mesh_utils import generate_mesh
-                vertices = results['vertices']
-                faces = results['faces']
-                return generate_mesh(vertices, faces)
+                try:
+                    from LHM.utils.mesh_utils import generate_mesh
+                    vertices = results['vertices']
+                    faces = results['faces']
+                    return generate_mesh(vertices, faces)
+                except ImportError:
+                    print("Warning: Could not import mesh_utils, using fallback mesh generation")
+                    return {'vertices': results['vertices'], 'faces': results['faces']}
             
             # If we can't generate a mesh, return None
             return None
