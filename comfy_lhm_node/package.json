@@ -61,7 +61,7 @@
     ],
     "setupHelp": "Follow installation instructions in README.md for full functionality. For simplified usage, no additional setup is required.",
     "compatibility": {
-      "comfyUI": ">=2024.3.0",
+      "comfyUI": ">=2025.3.0",
       "python": ">=3.10.0",
       "cuda": ">=13.0"
     }
