@@ -1,10 +1,10 @@
-# ComfyUI Wrapper for LHM (Large Human Model)
+# ComfyUI Wrapper for LHM (Large Animatable Human Model)
 
-This repository provides a ComfyUI custom node implementation for the Large Human Model (LHM), enabling seamless integration of human reconstruction and animation capabilities into ComfyUI workflows.
+This repository provides a ComfyUI custom node implementation for the Large Animatable Human Model (LHM), enabling seamless integration of human reconstruction and animation capabilities into ComfyUI workflows.
 
 ## Features
 
-- Human reconstruction from single images
+- Human reconstruction and animation from single images
 - Support for both LHM-0.5B and LHM-1B models
 - Background removal and image preprocessing
 - Motion sequence integration
@@ -46,7 +46,7 @@ bash download_weights.sh
 
 ### Inputs
 
-- `input_image`: Input image for human reconstruction
+- `input_image`: Input image for human reconstruction and animation
 - `model_version`: LHM model version to use (LHM-0.5B or LHM-1B)
 - `motion_path`: Path to motion sequence parameters
 - `export_mesh`: Whether to export 3D mesh
@@ -67,7 +67,7 @@ bash download_weights.sh
 
 # Official LHM PyTorch Implementation
 
-#### The ComfyUI implementation above is built on top of the official LHM PyTorch implementation detailed below.
+#### The ComfyUI implementation above is built on top of the official Large Animatable Human Model (LHM) PyTorch implementation detailed below.
 
 ---
 
