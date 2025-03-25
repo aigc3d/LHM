@@ -1,0 +1,65 @@
+{
+  "name": "comfy-lhm-node",
+  "version": "1.0.0",
+  "description": "ComfyUI Node for Large Animatable Human Model (LHM) reconstruction and animation",
+  "author": "aigraphix",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aigraphix/aigraphix.github.io"
+  },
+  "comfyUI": {
+    "nodeType": "lhmReconstruction",
+    "title": "LHM Human Reconstruction",
+    "description": "A node for human reconstruction and animation using the LHM (Large Animatable Human Model)",
+    "dependencies": [
+      "torch>=2.0.0",
+      "omegaconf>=2.0.0",
+      "numpy>=1.20.0",
+      "opencv-python>=4.5.0",
+      "pillow>=8.0.0",
+      "rembg>=2.0.0"
+    ],
+    "tags": [
+      "3d",
+      "animation",
+      "reconstruction",
+      "human",
+      "mesh"
+    ],
+    "features": [
+      "Human reconstruction from single images",
+      "3D mesh generation",
+      "Motion sequence animation",
+      "Background removal",
+      "Progress feedback"
+    ],
+    "example_workflow": "example_workflow.json",
+    "example_thumbnail": "thumbnail.png",
+    "category": [
+      "reconstruction",
+      "animation",
+      "3d"
+    ],
+    "compatibility": {
+      "comfyUI": ">=2023.12.0",
+      "api": "v1",
+      "cuda": ">=11.6",
+      "python": ">=3.10.0"
+    },
+    "settings": {
+      "path": "web/js/lhm_settings.js"
+    },
+    "scripts": {
+      "main": "web/js/lhm_node.js"
+    }
+  },
+  "homepage": "https://github.com/aigraphix/aigraphix.github.io",
+  "keywords": [
+    "comfyui",
+    "comfyui-node",
+    "human-reconstruction",
+    "3d-animation",
+    "lhm"
+  ]
+} 
