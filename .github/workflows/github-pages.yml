@@ -2,7 +2,7 @@ name: Build and deploy GitHub Pages
 
 on:
   push:
-    branches: ["main"]
+    branches: ["gh-pages"]
   workflow_dispatch:
 
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
