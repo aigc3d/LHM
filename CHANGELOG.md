@@ -7,6 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2024-03-26
+
+### Added
+- Created modular architecture for ComfyUI LHM node:
+  - Implemented a flexible system with standalone components
+  - Added fallback implementations for environments with missing dependencies
+  - Created `full_implementation.py` with complete functionality
+  - Added robust import path resolution via `lhm_import_fix.py`
+- Enhanced installation and dependency management:
+  - Created `install_dependencies.sh` bash script for automatic installation
+  - Added `install_dependencies.py` Python script for cross-platform support
+  - Implemented progressive loading of features based on available dependencies
+- Improved client-side implementation:
+  - Enhanced progress bar with detailed status updates
+  - Added custom styling with gradients and visual indicators
+  - Implemented responsive text-wrapping for status messages
+- New troubleshooting resources:
+  - Updated troubleshooting guide with common installation issues
+  - Added step-by-step solutions for dependency problems
+  - Created simplified test node for diagnostics
+
+### Changed
+- Refactored code structure for better maintainability:
+  - Separated full and simplified implementations
+  - Improved module loading with graceful fallbacks
+  - Enhanced error handling and user feedback
+- Reorganized API routes implementation:
+  - Created more robust websocket communication
+  - Added dummy server for offline development
+
+### Fixed
+- Resolved Pinokio integration issues:
+  - Fixed Python path resolution in Pinokio environments
+  - Added comprehensive path discovery for LHM codebase
+  - Implemented fallback mechanisms for missing dependencies
+- Improved cross-platform compatibility:
+  - Better handling of file paths on Windows and Unix systems
+  - Conditional dependency installation based on platform
+
 ## [1.0.0] - 2023-11-29
 
 ### Added
