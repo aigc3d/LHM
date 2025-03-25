@@ -64,7 +64,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implemented proper sanitization for user-provided motion data
 - Added checksums and verification for downloaded model weights
 
-## [1.1.0] - 2024-03-26
+## [1.1.0] - 2024-03-24
 
 ### Added
 - Created modular architecture for ComfyUI LHM node:
