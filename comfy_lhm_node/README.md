@@ -1,117 +1,82 @@
-# LHM ComfyUI Node
+# LHM Node for ComfyUI
 
-This is a ComfyUI custom node for the LHM (Large Animatable Human Model) project, which enables human reconstruction and animation in ComfyUI workflows.
+A custom node for ComfyUI that integrates the Large Human Model (LHM) for 3D human reconstruction from a single image.
 
 ## Features
 
-- Human reconstruction from single images
-- Support for both LHM-0.5B and LHM-1B models
-- Background removal and image preprocessing
-- Motion sequence integration
-- 3D mesh export
-- ComfyUI workflow integration
-- Progress feedback with real-time status updates
+- Reconstruct 3D human avatars from a single image
+- Generate animated sequences with the reconstructed avatar
+- Background removal option
+- Mesh export option for use in other 3D applications
+- Preview scaling for faster testing
+- Error handling with fallback to simplified implementation
 
 ## Installation
 
-1. Clone the LHM repository:
-```bash
-git clone https://github.com/aigc3d/LHM.git
-cd LHM
-```
+### Prerequisites
 
-2. Install the ComfyUI node dependencies:
-```bash
-cd comfy_lhm_node
-pip install -r requirements.txt
-```
+- ComfyUI installed and running
+- Python 3.10+ with pip
 
-3. Copy the `comfy_lhm_node` directory to your ComfyUI's `custom_nodes` directory:
-```bash
-cp -r comfy_lhm_node /path/to/ComfyUI/custom_nodes/
-```
+### Installation Steps
 
-4. Download the model weights:
-```bash
-# From the LHM root directory
-bash download_weights.sh
-```
+1. Clone this repository into your ComfyUI custom_nodes directory:
+   ```bash
+   cd /path/to/ComfyUI/custom_nodes
+   git clone https://github.com/aigraphix/comfy_lhm_node.git
+   ```
 
-## Usage
+2. Run the installation script:
+   ```bash
+   cd comfy_lhm_node
+   chmod +x install_dependencies.sh
+   ./install_dependencies.sh
+   ```
+   
+   Alternatively, you can use the Python installation script:
+   ```bash
+   cd comfy_lhm_node
+   chmod +x install_dependencies.py
+   ./install_dependencies.py
+   ```
 
-1. Launch ComfyUI
-2. Look for the "LHM" category in the node menu
-3. Add the "LHM Human Reconstruction" node to your workflow
-4. Connect an image input to the node
-5. Configure the node parameters:
-   - Model Version: Choose between LHM-0.5B and LHM-1B
-   - Motion Path: Path to SMPL-X motion parameters
-   - Export Mesh: Enable/disable 3D mesh export
-   - Remove Background: Enable/disable background removal
-   - Recenter: Enable/disable image recentering
+3. Restart ComfyUI
 
-## Node Inputs
+### Optional: Using the Test Workflow
 
-- `input_image`: Input image for human reconstruction
-- `model_version`: LHM model version to use
-- `motion_path`: Path to motion sequence parameters
-- `export_mesh`: Whether to export 3D mesh
-- `remove_background`: Whether to remove image background
-- `recenter`: Whether to recenter the image
+We've included a sample workflow to help you test the LHM node functionality:
 
-## Node Outputs
+1. Run the test workflow creation script:
+   ```bash
+   cd comfy_lhm_node
+   chmod +x create_test_workflow.py
+   ./create_test_workflow.py
+   ```
 
-- `processed_image`: Preprocessed input image
-- `animation`: Generated animation sequence
-- `3d_mesh`: 3D mesh model (if export_mesh is enabled)
+2. Place a test image named `test_human.png` in your ComfyUI input directory
+   
+3. In ComfyUI, load the workflow by clicking on the Load button and selecting `lhm_test_workflow.json`
 
-## Example Workflow
+4. Click "Queue Prompt" to run the workflow
 
-We've included an example workflow in the `example_workflow.json` file that demonstrates how to use the LHM node. To use it:
+The test workflow includes:
+- A LoadImage node that loads `test_human.png`
+- The LHM Reconstruction node configured with recommended settings
+- A TensorReshape node to format the animation output correctly
+- Preview Image nodes to display both the processed image and animation frames
 
-1. Open ComfyUI
-2. Click on the "Load" button in the top menubar
-3. Navigate to `/path/to/ComfyUI/custom_nodes/comfy_lhm_node/example_workflow.json`
-4. Load the workflow
+## Model Weights
 
-The example workflow:
-- Loads an input image
-- Processes it with the LHM node
-- Displays the processed image
-- Combines the animation frames into a video
-- Displays the animation
+The model weights are automatically downloaded the first time you run the node. If you encounter any issues with the automatic download, you can manually download the weights from:
 
-**Note:** The example workflow requires the VHS video extensions for ComfyUI to be installed. If you don't have them, you can still use the node by connecting the `processed_image` output to a `PreviewImage` node.
+- https://github.com/YuliangXiu/large-human-model
 
-## Client-Side Extensions
-
-The node includes client-side extensions that provide:
-
-- Real-time progress updates during processing
-- Custom styling for the node in the UI
-- Improved labels for boolean switches
-
-## Requirements
-
-- Python 3.10+
-- CUDA-compatible GPU
-- ComfyUI
-- See requirements.txt for full dependency list
+Place the weights in the `models` directory inside this node's folder.
 
 ## Troubleshooting
 
-1. **Issue**: "Module not found" error
-   - Make sure all dependencies are installed
-   - Check that the LHM project is properly added to Python path
-
-2. **Issue**: "Model weights not found" error
-   - Run `download_weights.sh` from the LHM root directory
-   - Check the model path is correct
-
-3. **Issue**: Node not showing up in ComfyUI
-   - Restart ComfyUI after installation
-   - Check that the node is properly copied to the custom_nodes directory
+If you encounter any issues with the installation or running the node, please check the [TROUBLESHOOTING.md](TROUBLESHOOTING.md) file for solutions to common problems.
 
 ## License
 
-This project is licensed under the Apache License 2.0 - see the LICENSE file for details. 
+This project is licensed under the terms of the MIT license. See [LICENSE](LICENSE) for more details. 

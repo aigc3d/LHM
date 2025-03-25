@@ -1,0 +1,218 @@
+{
+  "last_node_id": 5,
+  "last_link_id": 5,
+  "nodes": [
+    {
+      "id": "a4bc6538-0982-41cf-a38b-99d21ceef10b",
+      "type": "LoadImage",
+      "pos": [
+        200,
+        200
+      ],
+      "size": {
+        "0": 315,
+        "1": 102
+      },
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            {
+              "node": "ec6545d0-615e-41ca-abd6-7026c4341edb",
+              "slot": 0
+            }
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": []
+        }
+      ],
+      "properties": {
+        "filename": "test_human.png"
+      },
+      "widgets_values": [
+        "test_human.png"
+      ]
+    },
+    {
+      "id": "ec6545d0-615e-41ca-abd6-7026c4341edb",
+      "type": "LHMReconstructionNode",
+      "pos": [
+        600,
+        200
+      ],
+      "size": {
+        "0": 315,
+        "1": 178
+      },
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "input_image",
+          "type": "IMAGE",
+          "link": 0
+        }
+      ],
+      "outputs": [
+        {
+          "name": "processed_image",
+          "type": "IMAGE",
+          "links": [
+            {
+              "node": "d81de6d0-912f-4d11-acd3-e8fde526f61e",
+              "slot": 0
+            }
+          ]
+        },
+        {
+          "name": "animation_frames",
+          "type": "IMAGE",
+          "links": [
+            {
+              "node": "f8780e0f-e00d-4777-aa57-2d4b4303a517",
+              "slot": 0
+            }
+          ]
+        }
+      ],
+      "properties": {},
+      "widgets_values": [
+        "LHM-0.5B",
+        false,
+        true,
+        true,
+        1.0
+      ]
+    },
+    {
+      "id": "d81de6d0-912f-4d11-acd3-e8fde526f61e",
+      "type": "PreviewImage",
+      "pos": [
+        1000,
+        100
+      ],
+      "size": {
+        "0": 210,
+        "1": 246
+      },
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 1
+        }
+      ],
+      "properties": {},
+      "widgets_values": []
+    },
+    {
+      "id": "f8780e0f-e00d-4777-aa57-2d4b4303a517",
+      "type": "TensorReshape",
+      "pos": [
+        1000,
+        350
+      ],
+      "size": {
+        "0": 315,
+        "1": 82
+      },
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "tensor",
+          "type": "IMAGE",
+          "link": 2
+        }
+      ],
+      "outputs": [
+        {
+          "name": "tensor",
+          "type": "IMAGE",
+          "links": [
+            {
+              "node": "aa9a11e7-bd1a-4165-9497-19b58f01a1d6",
+              "slot": 0
+            }
+          ]
+        }
+      ],
+      "properties": {},
+      "widgets_values": [
+        "-1",
+        "-1",
+        "3"
+      ]
+    },
+    {
+      "id": "aa9a11e7-bd1a-4165-9497-19b58f01a1d6",
+      "type": "PreviewImage",
+      "pos": [
+        1300,
+        350
+      ],
+      "size": {
+        "0": 210,
+        "1": 246
+      },
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 3
+        }
+      ],
+      "properties": {},
+      "widgets_values": []
+    }
+  ],
+  "links": [
+    {
+      "id": 0,
+      "from_node": "a4bc6538-0982-41cf-a38b-99d21ceef10b",
+      "from_output": 0,
+      "to_node": "ec6545d0-615e-41ca-abd6-7026c4341edb",
+      "to_input": 0
+    },
+    {
+      "id": 1,
+      "from_node": "ec6545d0-615e-41ca-abd6-7026c4341edb",
+      "from_output": 0,
+      "to_node": "d81de6d0-912f-4d11-acd3-e8fde526f61e",
+      "to_input": 0
+    },
+    {
+      "id": 2,
+      "from_node": "ec6545d0-615e-41ca-abd6-7026c4341edb",
+      "from_output": 1,
+      "to_node": "f8780e0f-e00d-4777-aa57-2d4b4303a517",
+      "to_input": 0
+    },
+    {
+      "id": 3,
+      "from_node": "f8780e0f-e00d-4777-aa57-2d4b4303a517",
+      "from_output": 0,
+      "to_node": "aa9a11e7-bd1a-4165-9497-19b58f01a1d6",
+      "to_input": 0
+    }
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {},
+  "version": 0.4
+}

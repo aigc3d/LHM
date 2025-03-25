@@ -159,11 +159,78 @@ Two nodes are available based on the dependency situation:
 ### Issue: "ModuleNotFoundError: No module named 'pytorch3d'"
 **Solution:**
 - This complex dependency is optional. Without it, the simplified implementation will be used
-- For Apple Silicon Macs:
+
+- **Option 1 (Highly Recommended): Direct Installation from Source (Official Method):**
+  
+  Following the [official PyTorch3D installation guide](https://github.com/facebookresearch/pytorch3d/blob/main/INSTALL.md), we've had success with:
   ```bash
-  MACOSX_DEPLOYMENT_TARGET=10.9 CC=clang CXX=clang++ python -m pip install pytorch3d
+  # First, ensure PyTorch and torchvision are properly installed with MPS support
+  python -m pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cpu
+  
+  # Verify MPS support
+  python -c "import torch; print(f'PyTorch: {torch.__version__}, MPS available: {torch.backends.mps.is_available()}')"
+  
+  # Install prerequisites
+  python -m pip install fvcore iopath
+  
+  # For macOS with Apple Silicon (M1/M2/M3)
+  MACOSX_DEPLOYMENT_TARGET=10.9 CC=clang CXX=clang++ python -m pip install -e "git+https://github.com/facebookresearch/pytorch3d.git@stable"
+  
+  # Or clone and install from source
+  git clone https://github.com/facebookresearch/pytorch3d.git
+  cd pytorch3d
+  MACOSX_DEPLOYMENT_TARGET=10.9 CC=clang CXX=clang++ python -m pip install -e .
   ```
-- For other systems, see the [pytorch3d installation documentation](https://github.com/facebookresearch/pytorch3d/blob/main/INSTALL.md)
+  The key for Apple Silicon success is setting the environment variables `MACOSX_DEPLOYMENT_TARGET=10.9 CC=clang CXX=clang++`.
+
+- **Option 2 (Reliable): Use conda to install PyTorch3D:**
+  ```bash
+  # Using the bash script
+  cd ~/Desktop/LHM/comfy_lhm_node
+  chmod +x install_pytorch3d_conda.sh
+  ./install_pytorch3d_conda.sh
+  
+  # Or using the Python script
+  cd ~/Desktop/LHM/comfy_lhm_node
+  chmod +x install_pytorch3d_conda.py
+  ./install_pytorch3d_conda.py
+  ```
+  This method handles complex dependencies better than pip.
+
+- **Option 3: Use our specially optimized PyTorch MPS installation:**
+  ```bash
+  cd ~/Desktop/LHM/comfy_lhm_node
+  chmod +x install_pytorch_mps.py
+  ./install_pytorch_mps.py
+  ```
+
+- **Option 4: Use our specially optimized PyTorch3D installation scripts for Apple Silicon:**
+  ```bash
+  # Using the bash script
+  cd ~/Desktop/LHM/comfy_lhm_node
+  chmod +x install_pytorch3d_mac.sh
+  ./install_pytorch3d_mac.sh
+  
+  # Or using the Python script
+  cd ~/Desktop/LHM/comfy_lhm_node
+  chmod +x install_pytorch3d_mac.py
+  ./install_pytorch3d_mac.py
+  ```
+  
+- **Option 5: Use PyTorch3D-Lite as an alternative (easier installation):**
+  ```bash
+  cd ~/Desktop/LHM/comfy_lhm_node
+  chmod +x install_pytorch3d_lite.py
+  ./install_pytorch3d_lite.py
+  ```
+  This will install a simplified version of PyTorch3D with fewer features, but it's much easier to install and works on most systems including Apple Silicon.
+
+- **Option 6: Manual installation (advanced):**
+  - For Apple Silicon Macs:
+    ```bash
+    MACOSX_DEPLOYMENT_TARGET=10.9 CC=clang CXX=clang++ python -m pip install pytorch3d
+    ```
+  - For other systems, see the [pytorch3d installation documentation](https://github.com/facebookresearch/pytorch3d/blob/main/INSTALL.md)
 
 ### Issue: "ModuleNotFoundError: No module named 'roma'"
 **Solution:**
@@ -203,6 +270,96 @@ Two nodes are available based on the dependency situation:
   ```bash
   source ~/pinokio/api/comfy.git/app/env/bin/activate
   ```
+
+## Special Instructions for Apple Silicon (M1/M2/M3) Macs
+
+If you're using an Apple Silicon Mac (M1, M2, or M3), you may encounter specific challenges with PyTorch3D. We've developed several solutions to address this:
+
+### 1. Official PyTorch3D Installation (Most Reliable)
+
+The [official PyTorch3D installation guide](https://github.com/facebookresearch/pytorch3d/blob/main/INSTALL.md) provides specific instructions for Apple Silicon Macs that we've verified work:
+
+```bash
+# First ensure you have the appropriate compilers and PyTorch installed
+python -m pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cpu
+
+# Install from GitHub with the correct environment variables
+MACOSX_DEPLOYMENT_TARGET=10.9 CC=clang CXX=clang++ python -m pip install -e "git+https://github.com/facebookresearch/pytorch3d.git@stable"
+```
+
+The critical factors for successful installation on Apple Silicon are:
+- Setting `MACOSX_DEPLOYMENT_TARGET=10.9`
+- Using clang as the compiler with `CC=clang CXX=clang++`
+- Installing from source (either via git or by cloning the repository)
+- Using PyTorch with MPS support enabled
+
+After installation, you can verify it works by running:
+```bash
+python -c "import pytorch3d; print(f'PyTorch3D version: {pytorch3d.__version__}')"
+```
+
+### 2. Conda-Based PyTorch3D Installation (Alternative Approach)
+
+### 3. Optimized PyTorch + MPS + PyTorch3D Installation 
+
+The most reliable solution is to use our combined installation script that:
+- Installs PyTorch with proper MPS (Metal Performance Shaders) support
+- Installs PyTorch3D from a compatible source build
+- Sets up PyTorch3D-Lite as a fallback
+
+```bash
+cd ~/Desktop/LHM/comfy_lhm_node
+chmod +x install_pytorch_mps.py
+./install_pytorch_mps.py
+```
+
+This script verifies that MPS is available and correctly configured before proceeding with the PyTorch3D installation, resulting in better performance and compatibility.
+
+### 4. PyTorch3D Full Installation
+
+The `install_pytorch3d_mac.sh` and `install_pytorch3d_mac.py` scripts automate the complex process of installing PyTorch3D on Apple Silicon. These scripts:
+
+- Set the necessary environment variables for compilation
+- Find your Pinokio ComfyUI Python installation
+- Install prerequisites (fvcore, iopath, ninja)
+- Clone the PyTorch3D repository and check out a compatible commit
+- Build and install PyTorch3D from source
+- Install roma which is also needed for LHM
+
+### 4. PyTorch3D-Lite Alternative
+
+If you encounter difficulties with the full PyTorch3D installation, we provide a lightweight alternative:
+
+- The `install_pytorch3d_lite.py` script installs pytorch3d-lite and creates the necessary compatibility layer
+- This version has fewer features but works on most systems without complex compilation
+- It provides the core functionality needed for the LHM node
+
+### 5. Solving Animation Format Errors
+
+If you have the error with animation outputs like `TypeError: ... (1, 1, 400, 3), |u1`, you can:
+
+1. **Add a Tensor Reshape node:**
+   - Disconnect the animation output from any Preview Image node
+   - Add a "Tensor Reshape" node from ComfyUI
+   - Connect the LHM animation output to the Tensor Reshape input
+   - Set the custom shape in the Tensor Reshape node to `-1, -1, 3`
+   - Connect the Tensor Reshape output to your Preview Image node
+
+2. **Update to Full Implementation:**
+   - Run one of our PyTorch3D installation scripts
+   - Restart ComfyUI
+   - The full implementation will handle the animation output correctly
+
+## Checking Installation Success
+
+After running any of the PyTorch3D installation scripts, verify your installation:
+
+1. Restart ComfyUI in Pinokio
+2. Check the ComfyUI logs for these messages:
+   - "Using conda-installed PyTorch3D" indicates success with the conda method
+   - "Successfully loaded full LHM implementation" indicates success with direct installation
+   - "PyTorch3D-Lite fix loaded successfully" indicates the lite version is working
+   - "Using simplified implementation" indicates installation issues persist
 
 ## Testing the Installation
 
