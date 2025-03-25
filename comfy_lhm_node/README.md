@@ -1,6 +1,6 @@
 # LHM ComfyUI Node
 
-This is a ComfyUI custom node for the LHM (Large Human Model) project, which enables human reconstruction and animation in ComfyUI workflows.
+This is a ComfyUI custom node for the LHM (Large Animatable Human Model) project, which enables human reconstruction and animation in ComfyUI workflows.
 
 ## Features
 
@@ -10,6 +10,7 @@ This is a ComfyUI custom node for the LHM (Large Human Model) project, which ena
 - Motion sequence integration
 - 3D mesh export
 - ComfyUI workflow integration
+- Progress feedback with real-time status updates
 
 ## Installation
 
@@ -64,6 +65,32 @@ bash download_weights.sh
 - `animation`: Generated animation sequence
 - `3d_mesh`: 3D mesh model (if export_mesh is enabled)
 
+## Example Workflow
+
+We've included an example workflow in the `example_workflow.json` file that demonstrates how to use the LHM node. To use it:
+
+1. Open ComfyUI
+2. Click on the "Load" button in the top menubar
+3. Navigate to `/path/to/ComfyUI/custom_nodes/comfy_lhm_node/example_workflow.json`
+4. Load the workflow
+
+The example workflow:
+- Loads an input image
+- Processes it with the LHM node
+- Displays the processed image
+- Combines the animation frames into a video
+- Displays the animation
+
+**Note:** The example workflow requires the VHS video extensions for ComfyUI to be installed. If you don't have them, you can still use the node by connecting the `processed_image` output to a `PreviewImage` node.
+
+## Client-Side Extensions
+
+The node includes client-side extensions that provide:
+
+- Real-time progress updates during processing
+- Custom styling for the node in the UI
+- Improved labels for boolean switches
+
 ## Requirements
 
 - Python 3.10+
@@ -73,10 +100,17 @@ bash download_weights.sh
 
 ## Troubleshooting
 
-1. Ensure CUDA is properly installed and configured
-2. Verify model weights are downloaded correctly
-3. Check ComfyUI logs for any error messages
-4. Make sure all dependencies are installed correctly
+1. **Issue**: "Module not found" error
+   - Make sure all dependencies are installed
+   - Check that the LHM project is properly added to Python path
+
+2. **Issue**: "Model weights not found" error
+   - Run `download_weights.sh` from the LHM root directory
+   - Check the model path is correct
+
+3. **Issue**: Node not showing up in ComfyUI
+   - Restart ComfyUI after installation
+   - Check that the node is properly copied to the custom_nodes directory
 
 ## License
 

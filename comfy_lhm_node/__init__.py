@@ -8,6 +8,7 @@ import comfy.model_management as model_management
 from comfy.cli import args
 from rembg import remove
 from omegaconf import OmegaConf
+from server import PromptServer
 
 # Add LHM project to Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -53,6 +54,9 @@ class LHMReconstructionNode:
         self.cfg = None
         
     def reconstruct_human(self, input_image, model_version, motion_path, export_mesh, remove_background, recenter):
+        # Send initial progress update
+        PromptServer.instance.send_sync("lhm.progress", {"value": 0, "text": "Starting reconstruction..."})
+        
         # Convert input_image to numpy array
         if isinstance(input_image, torch.Tensor):
             input_image = input_image.cpu().numpy()
@@ -62,26 +66,34 @@ class LHMReconstructionNode:
         
         # Initialize components if not already loaded
         if self.model is None:
+            PromptServer.instance.send_sync("lhm.progress", {"value": 10, "text": "Initializing components..."})
             self.initialize_components(model_version)
         
         # Preprocess image
+        PromptServer.instance.send_sync("lhm.progress", {"value": 30, "text": "Preprocessing image..."})
         processed_image = self.preprocess_image(input_image, remove_background, recenter)
         
         # Run inference
+        PromptServer.instance.send_sync("lhm.progress", {"value": 50, "text": "Running inference..."})
         results = self.run_inference(processed_image, motion_path, export_mesh)
         
+        # Complete
+        PromptServer.instance.send_sync("lhm.progress", {"value": 100, "text": "Reconstruction complete!"})
         return results
 
     def initialize_components(self, model_version):
         # Load configuration
+        PromptServer.instance.send_sync("lhm.progress", {"value": 12, "text": "Loading configuration..."})
         config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 
                                  "configs", f"{model_version.lower()}.yaml")
         self.cfg = OmegaConf.load(config_path)
         
         # Initialize pose estimator
+        PromptServer.instance.send_sync("lhm.progress", {"value": 15, "text": "Initializing pose estimator..."})
         self.pose_estimator = PoseEstimator()
         
         # Initialize face detector and parsing network
+        PromptServer.instance.send_sync("lhm.progress", {"value": 18, "text": "Setting up background removal..."})
         try:
             from engine.SegmentAPI.SAM import SAM2Seg
             self.face_detector = SAM2Seg()
@@ -90,6 +102,7 @@ class LHMReconstructionNode:
             self.face_detector = None
         
         # Load LHM model
+        PromptServer.instance.send_sync("lhm.progress", {"value": 20, "text": "Loading LHM model..."})
         self.model = self.load_lhm_model(model_version)
 
     def preprocess_image(self, image, remove_background, recenter):
@@ -98,6 +111,7 @@ class LHMReconstructionNode:
         
         # Remove background if requested
         if remove_background:
+            PromptServer.instance.send_sync("lhm.progress", {"value": 32, "text": "Removing background..."})
             if self.face_detector is not None:
                 # Use SAM2 for background removal
                 mask = self.face_detector.get_mask(image_np)
@@ -110,6 +124,7 @@ class LHMReconstructionNode:
         
         # Recenter if requested
         if recenter:
+            PromptServer.instance.send_sync("lhm.progress", {"value": 35, "text": "Recentering image..."})
             image_np = center_crop_according_to_mask(image_np, mask)
         
         # Convert back to PIL Image
@@ -121,11 +136,17 @@ class LHMReconstructionNode:
                                 "checkpoints", f"{model_version.lower()}.pth")
         
         if not os.path.exists(model_path):
+            PromptServer.instance.send_sync("lhm.progress", {"value": 0, "text": "Error: Model weights not found!"})
             raise FileNotFoundError(f"Model weights not found at {model_path}")
         
         # Load model using the configuration
+        PromptServer.instance.send_sync("lhm.progress", {"value": 22, "text": "Building model architecture..."})
         model = self._build_model(self.cfg)
+        
+        PromptServer.instance.send_sync("lhm.progress", {"value": 25, "text": "Loading model weights..."})
         model.load_state_dict(torch.load(model_path, map_location=self.device))
+        
+        PromptServer.instance.send_sync("lhm.progress", {"value": 28, "text": "Moving model to device..."})
         model.to(self.device)
         model.eval()
         
@@ -138,20 +159,29 @@ class LHMReconstructionNode:
 
     def run_inference(self, processed_image, motion_path, export_mesh):
         # Convert processed image to tensor
+        PromptServer.instance.send_sync("lhm.progress", {"value": 55, "text": "Preparing tensors..."})
         image_tensor = torch.from_numpy(np.array(processed_image)).float() / 255.0
         image_tensor = image_tensor.permute(2, 0, 1).unsqueeze(0).to(self.device)
         
         # Prepare motion sequence
+        PromptServer.instance.send_sync("lhm.progress", {"value": 60, "text": "Loading motion sequence..."})
         motion_seqs = prepare_motion_seqs(motion_path)
         
         # Run inference
+        PromptServer.instance.send_sync("lhm.progress", {"value": 70, "text": "Running model inference..."})
         with torch.no_grad():
             results = self.model(image_tensor, motion_seqs)
         
         # Process results
+        PromptServer.instance.send_sync("lhm.progress", {"value": 90, "text": "Processing results..."})
         processed_image = results['processed_image']
         animation = results['animation']
-        mesh = results['mesh'] if export_mesh else None
+        mesh = None
+        
+        # Generate mesh if requested
+        if export_mesh:
+            PromptServer.instance.send_sync("lhm.progress", {"value": 95, "text": "Generating 3D mesh..."})
+            mesh = results['mesh']
         
         return processed_image, animation, mesh
 
@@ -162,4 +192,8 @@ NODE_CLASS_MAPPINGS = {
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "LHMReconstructionNode": "LHM Human Reconstruction"
-} 
+}
+
+# Web directory for client-side extensions
+WEB_DIRECTORY = "./web/js"
+__all__ = ['NODE_CLASS_MAPPINGS', 'NODE_DISPLAY_NAME_MAPPINGS', 'WEB_DIRECTORY'] 
