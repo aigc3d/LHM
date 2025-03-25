@@ -103,7 +103,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Better handling of file paths on Windows and Unix systems
   - Conditional dependency installation based on platform
 
-## [1.0.0] - 2023-11-29
+## [1.0.0] - 2025-03-23
 
 ### Added
 - Enhanced ComfyUI node with full standards compliance:
