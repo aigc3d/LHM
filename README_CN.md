@@ -1,12 +1,12 @@
 # <span><img src="./assets/LHM_logo_parsing.png" height="35" style="vertical-align: top;"> - 官方 PyTorch 实现</span>
 
-# <div align="center">LHM: Large Animatable Human Reconstruction Model for Single Image to 3D in Seconds<div> 
-###  <p align="center"> [Lingteng Qiu<sup>*</sup>](https://lingtengqiu.github.io/), [Xiaodong Gu<sup>*</sup>](https://scholar.google.com.hk/citations?user=aJPO514AAAAJ&hl=zh-CN&oi=ao), [Peihao Li<sup>*</sup>](https://liphao99.github.io/), [Qi Zuo<sup>*</sup>](https://scholar.google.com/citations?user=UDnHe2IAAAAJ&hl=zh-CN)<br>[Weichao Shen](https://scholar.google.com/citations?user=7gTmYHkAAAAJ&hl=zh-CN), [Junfei Zhang](https://scholar.google.com/citations?user=oJjasIEAAAAJ&hl=en), [Kejie Qiu](https://sites.google.com/site/kejieqiujack/home), [Weihao Yuan](https://weihao-yuan.com/), <br>[Guanying Chen<sup>+</sup>](https://guanyingc.github.io/), [Zilong Dong<sup>+</sup>](https://baike.baidu.com/item/%E8%91%A3%E5%AD%90%E9%BE%99/62931048), [Liefeng Bo](https://scholar.google.com/citations?user=FJwtMf0AAAAJ&hl=zh-CN)</p>
-##  <p align="center"> 阿里巴巴通义实验室</p>
+####  <p align="center"> [Lingteng Qiu<sup>*</sup>](https://lingtengqiu.github.io/), [Xiaodong Gu<sup>*</sup>](https://scholar.google.com.hk/citations?user=aJPO514AAAAJ&hl=zh-CN&oi=ao), [Peihao Li<sup>*</sup>](https://liphao99.github.io/), [Qi Zuo<sup>*</sup>](https://scholar.google.com/citations?user=UDnHe2IAAAAJ&hl=zh-CN)<br>[Weichao Shen](https://scholar.google.com/citations?user=7gTmYHkAAAAJ&hl=zh-CN), [Junfei Zhang](https://scholar.google.com/citations?user=oJjasIEAAAAJ&hl=en), [Kejie Qiu](https://sites.google.com/site/kejieqiujack/home), [Weihao Yuan](https://weihao-yuan.com/) <br>[Guanying Chen<sup>+</sup>](https://guanyingc.github.io/), [Zilong Dong<sup>+</sup>](https://baike.baidu.com/item/%E8%91%A3%E5%AD%90%E9%BE%99/62931048), [Liefeng Bo](https://scholar.google.com/citations?user=FJwtMf0AAAAJ&hl=zh-CN)</p>
+###  <p align="center"> 阿里巴巴通义实验室</p>
 
-[![项目主页](https://img.shields.io/badge/🌐-项目主页-blueviolet)](https://lingtengqiu.github.io/LHM/)
+[![项目主页](https://img.shields.io/badge/🌐-项目主页-blueviolet)](https://aigc3d.github.io/projects/LHM/)
 [![arXiv论文](https://img.shields.io/badge/📜-arXiv:2503-10625)](https://arxiv.org/pdf/2503.10625)
 [![HuggingFace](https://img.shields.io/badge/🤗-HuggingFace_Space-blue)](https://huggingface.co/spaces/DyrusQZ/LHM)
+[![ModelScope](https://img.shields.io/badge/%20ModelScope%20-Space-blue)](https://modelscope.cn/studios/Damo_XR_Lab/Motionshop2) 
 [![Apache协议](https://img.shields.io/badge/📃-Apache--2.0-929292)](https://www.apache.org/licenses/LICENSE-2.0)
 
 <p align="center">
@@ -14,6 +14,7 @@
 </p>
 
 ## 📢 最新动态
+**[2025年3月26日]** ModelScope 开源了，快来使用我们的线上资源吧 🔥🔥🔥!<br>
 **[2025年3月24日]** SAM2难装 😭😭😭? 👉 那就用rembg吧!<br>
 **[2025年3月20日]** 发布视频动作处理脚本<br>
 **[2025年3月19日]** 本地部署 Gradio<br>
@@ -29,12 +30,13 @@
 ### 待办清单
 - [x] 核心推理管线 (v0.1) 🔥🔥🔥
 - [x] HuggingFace 演示集成 🤗🤗🤗
-- [ ] ModelScope 部署
+- [x] ModelScope 部署
 - [x] 动作处理脚本 
 - [ ] 训练代码发布
 
 ## 🚀 快速开始
 
+我们提供了一个 [B站视频](https://www.bilibili.com/video/BV18So4YCESk/) 教大家如何一步一步的安装LHM.
 ### 环境配置
 克隆仓库
 ```bash
@@ -84,7 +86,7 @@ tar -xvf LHM-1B.tar
 ### 下载先验模型权重
 ```bash
 # 下载先验模型权重
-wget https://virutalbuy-public.oss-cn-hangzhou.aliyuncs.com/share/aigc3d/data/for_lingteng/LHM/LHM_prior_model.tar
+wget https://virutalbuy-public.oss-cn-hangzhou.aliyuncs.com/share/aigc3d/data/LHM/LHM_prior_model.tar 
 tar -xvf LHM_prior_model.tar 
 ```
 
@@ -93,7 +95,7 @@ tar -xvf LHM_prior_model.tar
 
 ```bash
 # 下载先验模型权重
-wget https://virutalbuy-public.oss-cn-hangzhou.aliyuncs.com/share/aigc3d/data/for_lingteng/LHM/motion_video.tar
+wget https://virutalbuy-public.oss-cn-hangzhou.aliyuncs.com/share/aigc3d/data/LHM/motion_video.tar
 tar -xvf ./motion_video.tar 
 ```
 
@@ -166,9 +168,8 @@ bash ./inference_mesh.sh ${CONFIG} ${MODEL_NAME}
 
 - 下载动作提取相关的预训练模型权重
   ```bash
-  wget -P ./pretrained_models/human_model_files/pose_estimate https://virutalbuy-public.oss-cn-hangzhou.aliyuncs.com/share/aigc3d/data/for_lingteng/LHM/yolov8x.pt
-
-  wget -P ./pretrained_models/human_model_files/pose_estimate https://virutalbuy-public.oss-cn-hangzhou.aliyuncs.com/share/aigc3d/data/for_lingteng/LHM/vitpose-h-wholebody.pth
+  wget -P ./pretrained_models/human_model_files/pose_estimate https://virutalbuy-public.oss-cn-hangzhou.aliyuncs.com/share/aigc3d/data/LHM/yolov8x.pt
+  wget -P ./pretrained_models/human_model_files/pose_estimate https://virutalbuy-public.oss-cn-hangzhou.aliyuncs.com/share/aigc3d/data/LHM/vitpose-h-wholebody.pth
   ```
 
 - 安装额外的依赖
@@ -197,7 +198,7 @@ bash ./inference_mesh.sh ${CONFIG} ${MODEL_NAME}
 我们提供了简单的指标计算脚本：
 ```bash
 # download pretrain model into ./pretrained_models/
-wget https://virutalbuy-public.oss-cn-hangzhou.aliyuncs.com/share/aigc3d/data/for_lingteng/arcface_resnet18.pth
+wget https://virutalbuy-public.oss-cn-hangzhou.aliyuncs.com/share/aigc3d/data/LHM/arcface_resnet18.pth
 # Face Similarity
 python ./tools/metrics/compute_facesimilarity.py -f1 ${gt_folder} -f2 ${results_folder}
 # PSNR 
@@ -215,6 +216,11 @@ python ./tools/metrics/compute_ssim_lpips.py -f1 ${gt_folder} -f2 ${results_fold
 - [DreamGaussian](https://github.com/dreamgaussian/dreamgaussian)
 
 感谢这些杰出工作对3D生成和数字人领域的重要贡献。
+我们要特别感谢[站长推荐推荐](https://space.bilibili.com/175365958?spm_id_from=333.337.0.0), 他无私地做了一条B站视频来交大家如何安装LHM.
+
+## 点赞曲线 
+
+[![Star History](https://api.star-history.com/svg?repos=aigc3d/LHM)](https://star-history.com/#aigc3d/LHM&Date)
 
 ## 引用 
 ```

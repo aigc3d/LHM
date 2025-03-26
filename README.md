@@ -1,11 +1,12 @@
 # <span><img src="./assets/LHM_logo_parsing.png" height="35" style="vertical-align: top;"> - Official PyTorch Implementation</span>
 
-#####  <p align="center"> [Lingteng Qiu<sup>*</sup>](https://lingtengqiu.github.io/), [Xiaodong Gu<sup>*</sup>](https://scholar.google.com.hk/citations?user=aJPO514AAAAJ&hl=zh-CN&oi=ao), [Peihao Li<sup>*</sup>](https://liphao99.github.io/), [Qi Zuo<sup>*</sup>](https://scholar.google.com/citations?user=UDnHe2IAAAAJ&hl=zh-CN), [Weichao Shen](https://scholar.google.com/citations?user=7gTmYHkAAAAJ&hl=zh-CN), [Junfei Zhang](https://scholar.google.com/citations?user=oJjasIEAAAAJ&hl=en), [Kejie Qiu](https://sites.google.com/site/kejieqiujack/home), [Weihao Yuan](https://weihao-yuan.com/), [Guanying Chen<sup>+</sup>](https://guanyingc.github.io/), [Zilong Dong<sup>+</sup>](https://baike.baidu.com/item/%E8%91%A3%E5%AD%90%E9%BE%99/62931048), [Liefeng Bo](https://scholar.google.com/citations?user=FJwtMf0AAAAJ&hl=zh-CN)</p>
+#####  <p align="center"> [Lingteng Qiu<sup>*</sup>](https://lingtengqiu.github.io/), [Xiaodong Gu<sup>*</sup>](https://scholar.google.com.hk/citations?user=aJPO514AAAAJ&hl=zh-CN&oi=ao), [Peihao Li<sup>*</sup>](https://liphao99.github.io/), [Qi Zuo<sup>*</sup>](https://scholar.google.com/citations?user=UDnHe2IAAAAJ&hl=zh-CN), [Weichao Shen](https://scholar.google.com/citations?user=7gTmYHkAAAAJ&hl=zh-CN), [Junfei Zhang](https://scholar.google.com/citations?user=oJjasIEAAAAJ&hl=en), [Kejie Qiu](https://sites.google.com/site/kejieqiujack/home), [Weihao Yuan](https://weihao-yuan.com/)<br> [Guanying Chen<sup>+</sup>](https://guanyingc.github.io/), [Zilong Dong<sup>+</sup>](https://baike.baidu.com/item/%E8%91%A3%E5%AD%90%E9%BE%99/62931048), [Liefeng Bo](https://scholar.google.com/citations?user=FJwtMf0AAAAJ&hl=zh-CN)</p>
 #####  <p align="center"> Tongyi Lab, Alibaba Group</p>
 
-[![Project Website](https://img.shields.io/badge/🌐-Project_Website-blueviolet)](https://lingtengqiu.github.io/LHM/)
+[![Project Website](https://img.shields.io/badge/🌐-Project_Website-blueviolet)](https://aigc3d.github.io/projects/LHM/)
 [![arXiv Paper](https://img.shields.io/badge/📜-arXiv:2503-10625)](https://arxiv.org/pdf/2503.10625)
 [![HuggingFace](https://img.shields.io/badge/🤗-HuggingFace_Space-blue)](https://huggingface.co/spaces/DyrusQZ/LHM)
+[![ModelScope](https://img.shields.io/badge/%20ModelScope%20-Space-blue)](https://modelscope.cn/studios/Damo_XR_Lab/Motionshop2) 
 [![Apache License](https://img.shields.io/badge/📃-Apache--2.0-929292)](https://www.apache.org/licenses/LICENSE-2.0)
 
 
@@ -15,6 +16,7 @@
 
 如果您熟悉中文，可以[阅读中文版本的README](./README_CN.md)
 ## 📢 Latest Updates
+**[March 25, 2025]** The online demo of ModelScope Space has been released: 500M model Only.<br>
 **[March 24, 2025]** Is SAM2 difficult to install😭😭😭? 👉 It is compatible with rembg!<br>
 **[March 20, 2025]** Release video motion processing pipeline<br>
 **[March 19, 2025]** Local Gradio App.py optimization:  Faster and More Stable 🔥🔥🔥 <br>
@@ -29,11 +31,13 @@
 ### TODO List 
 - [x] Core Inference Pipeline (v0.1) 🔥🔥🔥
 - [x] HuggingFace Demo Integration 🤗🤗🤗
-- [ ] ModelScope Deployment
+- [x] ModelScope Deployment
 - [x] Motion Processing Scripts 
 - [ ] Training Codes Release
 
 ## 🚀 Getting Started
+
+We provide a [video](https://www.bilibili.com/video/BV18So4YCESk/) that teaches us how to install LHM step by step on bilibili, submitted by 站长推荐推荐.
 
 ### Environment Setup
 Clone the repository.
@@ -87,7 +91,7 @@ tar -xvf LHM-1B.tar
 ### Download Prior Model Weights 
 ```bash
 # Download prior model weights
-wget https://virutalbuy-public.oss-cn-hangzhou.aliyuncs.com/share/aigc3d/data/for_lingteng/LHM/LHM_prior_model.tar
+wget https://virutalbuy-public.oss-cn-hangzhou.aliyuncs.com/share/aigc3d/data/LHM/LHM_prior_model.tar 
 tar -xvf LHM_prior_model.tar 
 ```
 
@@ -96,7 +100,7 @@ We provide the test motion examples, we will update the processing scripts ASAP 
 
 ```bash
 # Download prior model weights
-wget https://virutalbuy-public.oss-cn-hangzhou.aliyuncs.com/share/aigc3d/data/for_lingteng/LHM/motion_video.tar
+wget https://virutalbuy-public.oss-cn-hangzhou.aliyuncs.com/share/aigc3d/data/LHM/motion_video.tar
 tar -xvf ./motion_video.tar 
 ```
 
@@ -169,9 +173,8 @@ bash ./inference_mesh.sh ${CONFIG} ${MODEL_NAME}
 
 - Download model weights for motion processing.
   ```bash
-  wget -P ./pretrained_models/human_model_files/pose_estimate https://virutalbuy-public.oss-cn-hangzhou.aliyuncs.com/share/aigc3d/data/for_lingteng/LHM/yolov8x.pt
-
-  wget -P ./pretrained_models/human_model_files/pose_estimate https://virutalbuy-public.oss-cn-hangzhou.aliyuncs.com/share/aigc3d/data/for_lingteng/LHM/vitpose-h-wholebody.pth
+  wget -P ./pretrained_models/human_model_files/pose_estimate https://virutalbuy-public.oss-cn-hangzhou.aliyuncs.com/share/aigc3d/data/LHM/yolov8x.pt
+  wget -P ./pretrained_models/human_model_files/pose_estimate https://virutalbuy-public.oss-cn-hangzhou.aliyuncs.com/share/aigc3d/data/LHM/vitpose-h-wholebody.pth
   ```
 
 - Install extra dependencies.
@@ -201,7 +204,7 @@ bash ./inference_mesh.sh ${CONFIG} ${MODEL_NAME}
 We provide some simple scripts to compute the metrics.
 ```bash
 # download pretrain model into ./pretrained_models/
-wget https://virutalbuy-public.oss-cn-hangzhou.aliyuncs.com/share/aigc3d/data/for_lingteng/arcface_resnet18.pth
+wget https://virutalbuy-public.oss-cn-hangzhou.aliyuncs.com/share/aigc3d/data/LHM/arcface_resnet18.pth
 # Face Similarity
 python ./tools/metrics/compute_facesimilarity.py -f1 ${gt_folder} -f2 ${results_folder}
 # PSNR 
@@ -220,6 +223,8 @@ This work is built on many amazing research works and open-source projects:
 - [DreamGaussian](https://github.com/dreamgaussian/dreamgaussian)
 
 Thanks for their excellent works and great contribution to 3D generation and 3D digital human area.
+
+We would like to express our sincere gratitude to [站长推荐推荐](https://space.bilibili.com/175365958?spm_id_from=333.337.0.0)  for the installation tutorial video on bilibili.
 
 ## ✨ Star History
 

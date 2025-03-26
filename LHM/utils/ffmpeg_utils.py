@@ -1,8 +1,9 @@
 import os
 import pdb
+import subprocess
+import tempfile
 
 import cv2
-import imageio
 import imageio.v3 as iio
 import numpy as np
 import torch
@@ -54,3 +55,68 @@ def images_to_video(images, output_path, fps, gradio_codec: bool, verbose=False,
     frames = np.stack(frames)
     iio.imwrite(output_path,frames,fps=fps,codec="libx264",pixelformat="yuv420p",bitrate=bitrate,macro_block_size=16)
 
+
+# def images_to_video(images, output_path, fps, gradio_codec: bool, verbose=False, bitrate="10M", batch_size=500):
+#     os.makedirs(os.path.dirname(output_path), exist_ok=True)
+#     temp_files = []
+    
+#     try:
+#         for batch_idx in range(0, images.shape[0], batch_size):
+#             batch = images[batch_idx:batch_idx + batch_size]
+            
+#             with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as temp_file:
+#                 temp_path = temp_file.name
+#                 temp_files.append(temp_path)
+
+#             frames = []
+#             for i in range(batch.shape[0]):
+#                 if isinstance(batch, torch.Tensor):
+#                     frame = (batch[i].permute(1, 2, 0).cpu().numpy() * 255).astype(np.uint8)
+#                     assert frame.shape[0] == batch.shape[2] and frame.shape[1] == batch.shape[3], \
+#                         f"Frame shape mismatch: {frame.shape} vs {batch.shape}"
+#                     assert 0 <= frame.min() and frame.max() <= 255, \
+#                         f"Frame value out of range: {frame.min()} ~ {frame.max()}"
+#                 else:
+#                     frame = batch[i]
+#                 frames.append(frame)
+            
+#             frames = np.stack(frames)
+#             iio.imwrite(
+#                 temp_path,
+#                 frames,
+#                 fps=fps,
+#                 codec="libx264",
+#                 pixelformat="yuv420p",
+#                 bitrate=bitrate,
+#                 macro_block_size=16
+#             )
+            
+#             del batch, frames
+#             if isinstance(images, torch.Tensor):
+#                 torch.cuda.empty_cache()
+
+#         _concat_videos(temp_files, output_path)
+
+#     finally:
+#         for f in temp_files:
+#             try:
+#                 os.remove(f)
+#             except:
+#                 pass
+
+
+# def _concat_videos(input_files, output_path):
+#     list_file = tempfile.NamedTemporaryFile(mode='w', delete=False)
+#     try:
+#         content = "\n".join([f"file '{f}'" for f in input_files])
+#         list_file.write(content)
+#         list_file.close()
+
+#         cmd = [
+#             'ffmpeg', '-y', '-f', 'concat',
+#             '-safe', '0', '-i', list_file.name,
+#             '-c', 'copy', output_path
+#         ]
+#         subprocess.run(cmd, check=True)
+#     finally:
+#         os.remove(list_file.name)
