@@ -1,3 +1,76 @@
+# ComfyUI Wrapper for LHM (Large Animatable Human Model)
+
+This repository provides a ComfyUI custom node implementation for the Large Animatable Human Model (LHM), enabling seamless integration of human reconstruction and animation capabilities into ComfyUI workflows.
+
+## Features
+
+- Human reconstruction and animation from single images
+- Support for both LHM-0.5B and LHM-1B models
+- Background removal and image preprocessing
+- Motion sequence integration
+- 3D mesh export
+- Intuitive ComfyUI workflow integration
+
+## Installation
+
+1. Clone this repository:
+```bash
+git clone https://github.com/aigraphix/aigraphix.github.io.git lhm_comfyui_node
+cd lhm_comfyui_node
+```
+
+2. Install dependencies:
+```bash
+pip install -r comfy_lhm_node/requirements.txt
+```
+
+3. Copy the `comfy_lhm_node` directory to your ComfyUI's custom_nodes directory:
+```bash
+cp -r comfy_lhm_node /path/to/ComfyUI/custom_nodes/
+```
+
+4. Download the model weights:
+```bash
+bash download_weights.sh
+```
+
+## Usage
+
+1. Launch ComfyUI
+2. Look for the "LHM" category in the node menu
+3. Add the "LHM Human Reconstruction" node to your workflow
+4. Connect an image input to the node
+5. Configure the node parameters as needed
+
+## ComfyUI Node Documentation
+
+### Inputs
+
+- `input_image`: Input image for human reconstruction and animation
+- `model_version`: LHM model version to use (LHM-0.5B or LHM-1B)
+- `motion_path`: Path to motion sequence parameters
+- `export_mesh`: Whether to export 3D mesh
+- `remove_background`: Whether to remove image background
+- `recenter`: Whether to recenter the image
+
+### Outputs
+
+- `processed_image`: Preprocessed input image
+- `animation`: Generated animation sequence
+- `3d_mesh`: 3D mesh model (if export_mesh is enabled)
+
+## Example Workflow
+
+[Coming soon]
+
+---
+
+# Official LHM PyTorch Implementation
+
+#### The ComfyUI implementation above is built on top of the official Large Animatable Human Model (LHM) PyTorch implementation detailed below.
+
+---
+
 # <span><img src="./assets/LHM_logo_parsing.png" height="35" style="vertical-align: top;"> - Official PyTorch Implementation</span>
 
 #####  <p align="center"> [Lingteng Qiu<sup>*</sup>](https://lingtengqiu.github.io/), [Xiaodong Gu<sup>*</sup>](https://scholar.google.com.hk/citations?user=aJPO514AAAAJ&hl=zh-CN&oi=ao), [Peihao Li<sup>*</sup>](https://liphao99.github.io/), [Qi Zuo<sup>*</sup>](https://scholar.google.com/citations?user=UDnHe2IAAAAJ&hl=zh-CN), [Weichao Shen](https://scholar.google.com/citations?user=7gTmYHkAAAAJ&hl=zh-CN), [Junfei Zhang](https://scholar.google.com/citations?user=oJjasIEAAAAJ&hl=en), [Kejie Qiu](https://sites.google.com/site/kejieqiujack/home), [Weihao Yuan](https://weihao-yuan.com/)<br> [Guanying Chen<sup>+</sup>](https://guanyingc.github.io/), [Zilong Dong<sup>+</sup>](https://baike.baidu.com/item/%E8%91%A3%E5%AD%90%E9%BE%99/62931048), [Liefeng Bo](https://scholar.google.com/citations?user=FJwtMf0AAAAJ&hl=zh-CN)</p>
@@ -213,8 +286,9 @@ python ./tools/metrics/compute_psnr.py -f1 ${gt_folder} -f2 ${results_folder}
 python ./tools/metrics/compute_ssim_lpips.py -f1 ${gt_folder} -f2 ${results_folder} 
 ```
 
-## Contribute Needed
-We need a comfyui wrapper of our pipeline. If you are familiar with comfyui and would like to contribute to LHM, please contact muyuan.zq@alibaba-inc.com
+## ✅ ComfyUI Wrapper Implemented
+
+The ComfyUI wrapper for LHM has been implemented in this repository! See the documentation at the top of this README.
 
 ## Acknowledgement
 This work is built on many amazing research works and open-source projects:
