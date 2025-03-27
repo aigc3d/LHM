@@ -1,0 +1,160 @@
+# LHM-500M
+experiment:
+    type: lrm
+    seed: 42
+    parent: video_human_benchmark
+    child: human-lrm-500M 
+model:
+    # image encoder
+    model_name: SapDinoLRMBHSD3_5
+    encoder_type: dinov2_fusion
+    encoder_model_name: "dinov2_vitl14_reg"
+    encoder_feat_dim: 1024  # dinov2 embeding size 1024
+    encoder_freeze: False 
+
+    fine_encoder_type: sapiens
+    fine_encoder_model_name: "./pretrained_models/sapiens/pretrained/checkpoints/sapiens_1b/sapiens_1b_epoch_173_torchscript.pt2"  # sapiens pretrained model path
+    fine_encoder_feat_dim: 1536 # sapiens embeding size 1024
+    fine_encoder_freeze: True 
+
+    use_face_id: True
+
+    # points embeddings
+    # num_pcl: 10240
+    latent_query_points_type: "e2e_smplx_sub1"
+    pcl_dim: 1024
+    facesr: True
+
+    transformer_type: "sd3_mm_bh_cond"  # multi-modal BH attention.
+    transformer_heads: 16  # 30
+    transformer_dim: 1024  # 30 * 64=1920
+    transformer_layers: 5 # 30
+    tf_grad_ckpt: true
+    encoder_grad_ckpt: true
+
+    # for gs renderer
+    human_model_path: "./pretrained_models/human_model_files"
+    smplx_subdivide_num: 1
+    smplx_type: "smplx_2"
+    gs_query_dim: 1024
+    gs_use_rgb: True
+    gs_sh: 3
+    dense_sample_pts: 40000  # 4,000
+    gs_mlp_network_config:
+        n_neurons: 512
+        n_hidden_layers: 2
+        activation: silu
+    # gs_xyz_offset_max_step: 0.05625  # 1.8 / 32
+    # gs_clip_scaling: 0.2  # avoid too large Sphere
+    gs_xyz_offset_max_step: 1.  # 1.8 / 32
+    gs_clip_scaling: [100, 0.01, 0.05, 3000] # [start, start_v, end_v, end] 
+    expr_param_dim: 100
+    shape_param_dim: 10
+
+    fix_opacity: False 
+    fix_rotation: False 
+    cano_pose_type: 1  # 0 means exavatar-pose 1 indicates REC-MV pose
+
+dataset:
+    subsets:
+        -   name: video_human_flame
+            root_dirs: "./train_data/ClothVideo"
+            meta_path:
+                train: "./train_data/ClothVideo/label/valid_id_with_img_list_clean_30W.json"
+                val: "./train_data/ClothVideo/label/valid_id_with_img_list_val.json"
+            sample_rate: 1.0
+            use_flame: True 
+            src_head_size: 112
+        -   name: video_human_flame_v2
+            root_dirs: "./train_data/ClothVideo"
+            meta_path:
+                train: "./train_data/ClothVideo/label/valid_synthetic_data_train.json"
+                val: "./train_data/ClothVideo/label/valid_synthetic_data_val.json"
+            sample_rate: 1.0
+            use_flame: True 
+            src_head_size: 112
+    sample_side_views: 5 
+    source_image_res: 1024 
+    src_head_size: 112
+    render_image:
+        low: 512 
+        high: 512 
+        region: null
+    num_train_workers: 4
+    multiply: 16  # dino features
+    num_val_workers: 2
+    pin_mem: true
+    repeat_num: 1
+
+train:
+    mixed_precision: bf16  # REPLACE THIS BASED ON GPU TYPE
+    find_unused_parameters: false
+    loss_func:
+        pixel_loss: l1  # L1 or MSE
+        ball_loss:
+            type: heuristic  # heuristic ball_loss 
+            group: 
+                head: 1.
+                lower_body: 100.
+                upper_body: 1000.
+                hands: 10000.
+        offset_loss:
+            type: classical # heuristic ball_loss 
+            group: 
+                head: 1.
+                lower_body: 1.  
+                upper_body: 100.
+                hands: 1000.
+    loss:
+        pixel_weight: 0.0
+        masked_pixel_weight: 1.0
+        masked_head_weight: 0.0
+        perceptual_weight: 1.0
+        # tv_weight: 5e-4
+        tv_weight: -1
+        mask_weight: 1.0
+        face_id_weight: 0.05 
+        asap_weight: 10.0  # ball loss
+        acap_weight: 1000.0  # offset loss
+    optim:
+        lr: 4e-5
+        weight_decay: 0.05
+        beta1: 0.9
+        beta2: 0.95
+        clip_grad_norm: 0.1  # diffusion model
+    scheduler:
+        type: cosine
+        warmup_real_iters: 0
+    batch_size: 4  # REPLACE THIS (PER GPU)
+    accum_steps: 1  # REPLACE THIS
+    epochs: 60  # REPLACE THIS
+    debug_global_steps: null
+
+val:
+    batch_size: 2
+    global_step_period: 1000
+    debug_batches: 10
+
+saver:
+    auto_resume: True 
+    load_model: None
+    checkpoint_root: ./exps/checkpoints
+    checkpoint_global_steps: 1000
+    checkpoint_keep_level: 60 
+
+logger:
+    stream_level: WARNING
+    log_level: INFO
+    log_root: ./exps/logs
+    tracker_root: ./exps/trackers
+    enable_profiler: false
+    trackers:
+        - tensorboard
+    image_monitor:
+        train_global_steps: 100
+        samples_per_log: 4
+
+compile:
+    suppress_errors: true
+    print_specializations: true
+    disable: true

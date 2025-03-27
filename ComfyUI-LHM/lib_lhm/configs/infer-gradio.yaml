@@ -1,0 +1,7 @@
+source_size: 336
+render_size: 288
+render_views: 100
+render_fps: 25
+frame_size: 2
+mesh_size: 384
+mesh_thres: 3.0
