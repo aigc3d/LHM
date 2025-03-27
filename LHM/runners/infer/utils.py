@@ -394,7 +394,7 @@ def prepare_motion_seqs(
     need_mask,
     multiply=16,
     vis_motion=False,
-    motion_size=500,  # only support 12s videos
+    motion_size=3000,  # only support 100s videos
 ):
     """
     Prepare motion sequences for rendering.

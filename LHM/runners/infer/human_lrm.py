@@ -686,7 +686,7 @@ class HumanLRMInferrer(Inferrer):
             },
         )
 
-        batch_dict = dict()
+        batch_list = [] 
         batch_size = 40  # avoid memeory out!
 
         for batch_i in range(0, camera_size, batch_size):
@@ -733,27 +733,23 @@ class HumanLRMInferrer(Inferrer):
                     ].to(device),
                     )
 
+            comp_rgb = res["comp_rgb"] # [Nv, H, W, 3], 0-1
+            comp_mask = res["comp_mask"] # [Nv, H, W, 3], 0-1
+            comp_mask[comp_mask < 0.5] = 0.0
 
-            for accumulate_key in ["comp_rgb", "comp_mask"]:
-                if accumulate_key not in batch_dict:
-                    batch_dict[accumulate_key] = []
-                batch_dict[accumulate_key].append(res[accumulate_key].detach().cpu())
+            batch_rgb = comp_rgb * comp_mask + (1 - comp_mask) * 1
+            batch_rgb = (batch_rgb.clamp(0,1) * 255).to(torch.uint8).detach().cpu().numpy()
+            batch_list.append(batch_rgb)
+
             del res
             torch.cuda.empty_cache()
-
-        for accumulate_key in ["comp_rgb", "comp_mask"]:
-            batch_dict[accumulate_key] = torch.cat(batch_dict[accumulate_key], dim=0)
-
-        rgb = batch_dict["comp_rgb"].detach().cpu().numpy()  # [Nv, H, W, 3], 0-1
-        mask = batch_dict["comp_mask"].detach().cpu().numpy()  # [Nv, H, W, 3], 0-1
-        mask[mask < 0.5] = 0.0
-
-        rgb = rgb * mask + (1 - mask) * 1
-        rgb = np.clip(rgb * 255, 0, 255).astype(np.uint8)
+        
+        rgb = np.concatenate(batch_list, axis=0)
 
         os.makedirs(os.path.dirname(dump_video_path), exist_ok=True)
 
         print(f"save video to {dump_video_path}")
+
 
         images_to_video(
             rgb,

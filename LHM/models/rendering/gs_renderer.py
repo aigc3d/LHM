@@ -444,7 +444,24 @@ class GSLayer(nn.Module):
     def hyper_step(self, step):
         self.clip_scaling = self.clip_scaling_pruner.get_value(step)
 
-    def forward(self, x, pts, x_fine=None):
+    def constrain_forward(self, ret, constrain_dict):
+
+        # body scaling constrain
+        # gs_attr.scaling[is_constrain_body] = gs_attr.scaling[is_constrain_body].clamp(max=0.02)  # magic number, which is used to constrain 
+        # hand opacity constrain 
+
+        # force the hand's opacity to be 0.95
+        # gs_attr.opacity[is_hand] = gs_attr.opacity[is_hand].clamp(min=0.95)
+
+        # body scaling constrain
+        is_constrain_body = constrain_dict['is_constrain_body']
+        scaling = ret['scaling'] 
+        scaling[is_constrain_body] = scaling[is_constrain_body].clamp(max = 0.02)
+        ret['scaling'] = scaling
+
+        return ret
+
+    def forward(self, x, pts, x_fine=None, constrain_dict=None):
         assert len(x.shape) == 2
         ret = {}
         for k in self.attr_dict:
@@ -499,6 +516,9 @@ class GSLayer(nn.Module):
             ret[k] = v
 
         ret["use_rgb"] = self.use_rgb
+
+        if constrain_dict is not None:
+            ret = self.constrain_forward(ret, constrain_dict)
 
         return GaussianAppOutput(**ret)
 
@@ -1030,10 +1050,6 @@ class GS3DRenderer(nn.Module):
             # inference constrain
             is_constrain_body = self.smplx_model.is_constrain_body
             rigid_rotation_matrix[:, is_constrain_body] = I
-            gs_attr.scaling[is_constrain_body] = gs_attr.scaling[
-                is_constrain_body
-            ].clamp(max=0.02)
-
             rotation_neutral_pose = gs_attr.rotation.unsqueeze(0).repeat(num_view, 1, 1)
 
             # TODO do not move underarm gs
@@ -1077,7 +1093,15 @@ class GS3DRenderer(nn.Module):
                 x_fine = self.mlp_net(x_fine)
 
         # NOTE that gs_attr contains offset xyz
-        gs_attr: GaussianAppOutput = self.gs_net(x, query_points, x_fine)
+        is_constrain_body = self.smplx_model.is_constrain_body
+        is_hands =  self.smplx_model.is_rhand + self.smplx_model.is_lhand 
+
+        constrain_dict=dict(
+            is_constrain_body=is_constrain_body,
+            is_hands=is_hands
+        )
+
+        gs_attr: GaussianAppOutput = self.gs_net(x, query_points, x_fine, constrain_dict)
 
         return gs_attr
 
@@ -1669,5 +1693,6 @@ def test1():
 
 if __name__ == "__main__":
     # test1()
+    test()
     test()
     test()

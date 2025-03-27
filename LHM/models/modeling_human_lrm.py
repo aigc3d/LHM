@@ -814,7 +814,7 @@ class ModelHumanLRMSapdinoBodyHeadSD3_5(ModelHumanLRM):
         for res in render_res_list:
             for k, v in res.items():
                 if isinstance(v[0], torch.Tensor):
-                    out[k].append(v.detach().cpu())
+                    out[k].append(v.detach())
                 else:
                     out[k].append(v)
         for k, v in out.items():
