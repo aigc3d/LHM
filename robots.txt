@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Sitemap: https://aigraphix.github.io/sitemap.xml
+
+# Disallow sensitive directories
+Disallow: /checkpoints/
+Disallow: /train_data/ 

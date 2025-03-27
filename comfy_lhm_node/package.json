@@ -1,0 +1,120 @@
+{
+  "name": "comfy-lhm-node",
+  "version": "2.0.0",
+  "description": "Large Animatable Human Model (LHM) node for ComfyUI for 3D human reconstruction and animation",
+  "author": "AIgraphix",
+  "homepage": "https://github.com/aigraphix/aigraphix.github.io",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aigraphix/aigraphix.github.io.git"
+  },
+  "license": "Apache-2.0",
+  "main": "/__init__.py",
+  "comfyUI": {
+    "nodeTypes": [
+      "LHMReconstructionNode", 
+      "LHMTestNode", 
+      "LHMMotionCaptureNode", 
+      "LHMTexturePaintingNode", 
+      "LHMAnimationExportNode", 
+      "LHMCompositingNode"
+    ],
+    "title": "LHM",
+    "description": "Provide 3D human reconstruction and animation nodes for ComfyUI using the Large Animatable Human Model",
+    "dependencies": [
+      {
+        "name": "torch",
+        "version": ">=2.3.0"
+      },
+      {
+        "name": "numpy",
+        "version": ">=1.26.0"
+      },
+      {
+        "name": "opencv-python",
+        "version": ">=4.9.0"
+      },
+      {
+        "name": "scikit-image",
+        "version": ">=0.22.0"
+      },
+      {
+        "name": "omegaconf",
+        "version": ">=2.3.0"
+      },
+      {
+        "name": "pytorch3d",
+        "version": ">=0.9.0"
+      }
+    ],
+    "tags": [
+      "human",
+      "3d",
+      "reconstruction",
+      "animation",
+      "lhm",
+      "mesh",
+      "ai",
+      "physics",
+      "motion-capture",
+      "multi-view"
+    ],
+    "setupHelp": "Follow installation instructions in README.md for full functionality. For simplified usage, no additional setup is required.",
+    "compatibility": {
+      "comfyUI": ">=2025.3.0",
+      "python": ">=3.10.0",
+      "cuda": ">=13.0"
+    }
+  },
+  "installInstructions": "See README.md for detailed installation instructions.",
+  "scripts": {
+    "install-dependencies": "python install_dependencies.py",
+    "install-bash": "bash install_dependencies.sh",
+    "install-cuda13": "bash install_dependencies_cuda13.sh",
+    "install-apple-silicon": "bash install_dependencies_apple_silicon.sh",
+    "install-amd": "bash install_dependencies_amd.sh"
+  },
+  "buttons": [
+    {
+      "name": "Install Dependencies",
+      "script": "install-dependencies"
+    },
+    {
+      "name": "Install for Apple Silicon",
+      "script": "install-apple-silicon"
+    },
+    {
+      "name": "Install for NVIDIA CUDA 13",
+      "script": "install-cuda13"
+    },
+    {
+      "name": "Install for AMD GPUs",
+      "script": "install-amd"
+    },
+    {
+      "name": "GitHub Repository",
+      "href": "https://github.com/aigraphix/aigraphix.github.io"
+    }
+  ],
+  "requirements": [
+    "torch>=2.3.0",
+    "numpy>=1.26.0",
+    "opencv-python>=4.9.0",
+    "scikit-image>=0.22.0",
+    "omegaconf>=2.3.0",
+    "rembg>=3.0.0",
+    "matplotlib>=4.0.0",
+    "roma>=1.2.0",
+    "pytorch3d>=0.9.0",
+    "onnxruntime>=2.0.0",
+    "trimesh>=4.0.0",
+    "pyrender>=1.0.0",
+    "pygltflib>=2.0.0"
+  ],
+  "optionalRequirements": [
+    "pycuda>=2023.1",
+    "taichi>=2.0.0",
+    "nvdiffrast>=0.4.0",
+    "tensorflow>=2.15.0"
+  ]
+} 
