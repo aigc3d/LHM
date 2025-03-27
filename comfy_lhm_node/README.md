@@ -75,7 +75,7 @@ Place the weights in the `models` directory inside this node's folder.
 
 ## Troubleshooting
 
-If you encounter any issues with the installation or running the node, please check the [TROUBLESHOOTING.md](TROUBLESHOOTING.md) file for solutions to common problems.
+If you encounter any issues with the installation or running the node, check the [TROUBLESHOOTING.md](TROUBLESHOOTING.md) file for solutions to common problems.
 
 ## License
 
