@@ -34,7 +34,11 @@ from LHM.datasets.cam_utils import (
     surrounding_views_linspace,
 )
 from LHM.models.modeling_human_lrm import ModelHumanLRM
-from LHM.runners import REGISTRY_RUNNERS
+# from LHM.runners import REGISTRY_RUNNERS
+
+from LHM.utils.registry import Registry
+REGISTRY_RUNNERS = Registry()
+
 from LHM.runners.infer.utils import (
     calc_new_tgt_size_by_aspect,
     center_crop_according_to_mask,

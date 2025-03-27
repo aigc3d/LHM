@@ -9,6 +9,18 @@ from omegaconf import OmegaConf
 import time
 
 from .lib_lhm.engine.pose_estimation.pose_estimator import PoseEstimator
+from .lib_lhm.engine.SegmentAPI.base import Bbox
+from .lib_lhm.LHM.utils.face_detector import VGGHeadDetector
+
+from .lib_lhm.LHM.runners.infer.utils import (
+    calc_new_tgt_size_by_aspect,
+    center_crop_according_to_mask,
+    prepare_motion_seqs,
+    resize_image_keepaspect_np,
+)
+# from .lib_lhm.LHM.utils.hf_hub import wrap_model_hub
+# from .lib_lhm.LHM.utils.ffmpeg_utils import images_to_video
+
 
 class LHMReconstructionNode:
     """
@@ -31,12 +43,6 @@ class LHMReconstructionNode:
                 "motion_path": ("STRING", {
                     "default": "./train_data/motion_video/mimo1/smplx_params"
                 }),
-                "export_mesh": ("BOOLEAN", {"default": False}),
-                "remove_background": ("BOOLEAN", {"default": True}),
-                "recenter": ("BOOLEAN", {"default": True})
-            },
-            "optional": {
-                "preview_scale": ("FLOAT", {"default": 1.0, "min": 0.1, "max": 2.0, "step": 0.1}),
             }
         }
     

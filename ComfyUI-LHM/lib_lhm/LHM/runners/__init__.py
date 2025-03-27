@@ -13,8 +13,8 @@
 # limitations under the License.
 
 
-from LHM.utils.registry import Registry
+# from LHM.utils.registry import Registry
 
-REGISTRY_RUNNERS = Registry()
+# REGISTRY_RUNNERS = Registry()
 
-from .infer import *
+# from .infer import *
