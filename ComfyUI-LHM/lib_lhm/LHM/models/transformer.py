@@ -11,10 +11,10 @@ from typing import Any, Dict, Optional, Tuple, Union
 
 import torch
 import torch.nn as nn
-from accelerate.logging import get_logger
+# from accelerate.logging import get_logger
 from diffusers.utils import is_torch_version
 
-logger = get_logger(__name__)
+# logger = get_logger(__name__)
 
 
 class TransformerDecoder(nn.Module):
@@ -106,7 +106,7 @@ class TransformerDecoder(nn.Module):
             ), f"Condition and modulation are not supported for BasicBlock"
             from .block import BasicBlock
 
-            logger.debug(f"Using BasicBlock")
+            # logger.debug(f"Using BasicBlock")
             return partial(BasicBlock, inner_dim=inner_dim)
         elif self.block_type == "cond":
             assert (
@@ -117,10 +117,10 @@ class TransformerDecoder(nn.Module):
             ), f"Modulation dimension is not supported for ConditionBlock"
             from .block import ConditionBlock
 
-            logger.debug(f"Using ConditionBlock")
+            # logger.debug(f"Using ConditionBlock")
             return partial(ConditionBlock, inner_dim=inner_dim, cond_dim=cond_dim)
         elif self.block_type == "mod":
-            logger.error(f"modulation without condition is not implemented")
+            # logger.error(f"modulation without condition is not implemented")
             raise NotImplementedError(
                 f"modulation without condition is not implemented"
             )
@@ -130,7 +130,7 @@ class TransformerDecoder(nn.Module):
             ), f"Condition and modulation dimensions must be specified for ConditionModulationBlock"
             from .block import ConditionModulationBlock
 
-            logger.debug(f"Using ConditionModulationBlock")
+            # logger.debug(f"Using ConditionModulationBlock")
             return partial(
                 ConditionModulationBlock,
                 inner_dim=inner_dim,
@@ -138,25 +138,25 @@ class TransformerDecoder(nn.Module):
                 mod_dim=mod_dim,
             )
         elif self.block_type == "cogvideo_cond":
-            logger.debug(f"Using CogVideoXBlock")
+            # logger.debug(f"Using CogVideoXBlock")
             from LHM.models.transformer_dit import CogVideoXBlock
 
             # assert inner_dim == cond_dim, f"inner_dim:{inner_dim}, cond_dim:{cond_dim}"
             return partial(CogVideoXBlock, dim=inner_dim, attention_bias=True)
         elif self.block_type == "sd3_cond":
-            logger.debug(f"Using SD3JointTransformerBlock")
+            # logger.debug(f"Using SD3JointTransformerBlock")
             from LHM.models.transformer_dit import SD3JointTransformerBlock
 
             return partial(SD3JointTransformerBlock, dim=inner_dim, qk_norm="rms_norm")
         elif self.block_type == "sd3_mm_cond":
-            logger.debug(f"Using SD3MMJointTransformerBlock")
+            # logger.debug(f"Using SD3MMJointTransformerBlock")
             from LHM.models.transformer_dit import SD3MMJointTransformerBlock
 
             return partial(
                 SD3MMJointTransformerBlock, dim=inner_dim, qk_norm="rms_norm"
             )
         elif self.block_type == "sd3_mm_bh_cond":
-            logger.debug(f"Using SD3MMJointTransformerBlock")
+            # logger.debug(f"Using SD3MMJointTransformerBlock")
             from LHM.models.transformer_dit import SD3BodyHeadMMJointTransformerBlock
 
             return partial(

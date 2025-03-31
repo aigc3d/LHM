@@ -14,7 +14,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from accelerate.logging import get_logger
+# from accelerate.logging import get_logger
 from diffusers.utils import is_torch_version
 
 from LHM.models.arcface_utils import ResNetArcFace
@@ -29,7 +29,7 @@ from .embedder import CameraEmbedder
 from .rendering.synthesizer import TriplaneSynthesizer
 from .transformer import TransformerDecoder
 
-logger = get_logger(__name__)
+# logger = get_logger(__name__)
 
 
 class ModelHumanLRM(nn.Module):
@@ -124,6 +124,7 @@ class ModelHumanLRM(nn.Module):
         cano_pose_type = kwargs.get("cano_pose_type", 0)
         dense_sample_pts = kwargs.get("dense_sample_pts", 40000)
 
+        # print(human_model_path)
         # original 3DGS Raster
         self.renderer = GS3DRenderer(
             human_model_path=human_model_path,
@@ -212,42 +213,42 @@ class ModelHumanLRM(nn.Module):
         if encoder_type == "dino":
             from .encoders.dino_wrapper import DinoWrapper
 
-            logger.info("Using DINO as the encoder")
+            # logger.info("Using DINO as the encoder")
             return DinoWrapper
         elif encoder_type == "dinov2":
             from .encoders.dinov2_wrapper import Dinov2Wrapper
 
-            logger.info("Using DINOv2 as the encoder")
+            # logger.info("Using DINOv2 as the encoder")
             return Dinov2Wrapper
         elif encoder_type == "dinov2_unet":
             from .encoders.dinov2_unet_wrapper import Dinov2UnetWrapper
 
-            logger.info("Using Dinov2Unet as the encoder")
+            # logger.info("Using Dinov2Unet as the encoder")
             return Dinov2UnetWrapper
         elif encoder_type == "resunet":
             from .encoders.xunet_wrapper import XnetWrapper
 
-            logger.info("Using XnetWrapper as the encoder")
+            # logger.info("Using XnetWrapper as the encoder")
             return XnetWrapper
         elif encoder_type == "dinov2_featup":
             from .encoders.dinov2_featup_wrapper import Dinov2FeatUpWrapper
 
-            logger.info("Using Dinov2FeatUpWrapper as the encoder")
+            # logger.info("Using Dinov2FeatUpWrapper as the encoder")
             return Dinov2FeatUpWrapper
         elif encoder_type == "dinov2_dpt":
             from .encoders.dinov2_dpt_wrapper import Dinov2DPTWrapper
 
-            logger.info("Using Dinov2DPTWrapper as the encoder")
+            # logger.info("Using Dinov2DPTWrapper as the encoder")
             return Dinov2DPTWrapper
         elif encoder_type == "dinov2_fusion":
             from .encoders.dinov2_fusion_wrapper import Dinov2FusionWrapper
 
-            logger.info("Using Dinov2FusionWrapper as the encoder")
+            # logger.info("Using Dinov2FusionWrapper as the encoder")
             return Dinov2FusionWrapper
         elif encoder_type == "sapiens":
             from .encoders.sapiens_warpper import SapiensWrapper
 
-            logger.info("Using Sapiens as the encoder")
+            # logger.info("Using Sapiens as the encoder")
             return SapiensWrapper
 
     def forward_transformer(self, image_feats, camera_embeddings, query_points):
@@ -643,10 +644,10 @@ class ModelHumanLRMSapdinoBodyHeadSD3_5(ModelHumanLRM):
             },
         ]
 
-        logger.info("======== Weight Decay Parameters ========")
-        logger.info(f"Total: {len(decay_params)}")
-        logger.info("======== No Weight Decay Parameters ========")
-        logger.info(f"Total: {len(no_decay_params)}")
+        # logger.info("======== Weight Decay Parameters ========")
+        # logger.info(f"Total: {len(decay_params)}")
+        # logger.info("======== No Weight Decay Parameters ========")
+        # logger.info(f"Total: {len(no_decay_params)}")
 
         print(f"Total Params: {len(no_decay_params) + len(decay_params)}")
 

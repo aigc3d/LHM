@@ -18,10 +18,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
-from accelerate.logging import get_logger
+# from accelerate.logging import get_logger
 from tqdm import tqdm
 
-logger = get_logger(__name__)
+# logger = get_logger(__name__)
 
 timings = {}
 BATCH_SIZE = 64
@@ -188,7 +188,7 @@ class SapiensWrapper(nn.Module):
     @staticmethod
     def _build_sapiens(model_name: str, pretrained: bool = True):
 
-        logger.debug(f"Using Sapiens model: {model_name}")
+        # logger.debug(f"Using Sapiens model: {model_name}")
         USE_TORCHSCRIPT = "_torchscript" in model_name
 
         # build the model from a checkpoint file
@@ -201,7 +201,7 @@ class SapiensWrapper(nn.Module):
         return model
 
     def _freeze(self):
-        logger.warning(f"======== Freezing Sapiens Model ========")
+        # logger.warning(f"======== Freezing Sapiens Model ========")
         self.model.eval()
         for name, param in self.model.named_parameters():
             param.requires_grad = False

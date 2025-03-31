@@ -1,12 +1,16 @@
 import os
 import sys
 import torch
+torch._dynamo.config.disable = True
 import numpy as np
 from PIL import Image
 import cv2
 import comfy.model_management as model_management
 from omegaconf import OmegaConf
 import time
+import argparse
+import uuid
+from rembg import remove
 
 from .lib_lhm.engine.pose_estimation.pose_estimator import PoseEstimator
 from .lib_lhm.engine.SegmentAPI.base import Bbox
@@ -18,9 +22,224 @@ from .lib_lhm.LHM.runners.infer.utils import (
     prepare_motion_seqs,
     resize_image_keepaspect_np,
 )
-# from .lib_lhm.LHM.utils.hf_hub import wrap_model_hub
-# from .lib_lhm.LHM.utils.ffmpeg_utils import images_to_video
 
+from .lib_lhm.LHM.utils.hf_hub import wrap_model_hub
+from .lib_lhm.LHM.utils.ffmpeg_utils import images_to_video
+from .lib_lhm.engine.SegmentAPI.base import Bbox
+
+# several util funcs we use
+def get_bbox(mask):
+    height, width = mask.shape
+    pha = mask / 255.0
+    pha[pha < 0.5] = 0.0
+    pha[pha >= 0.5] = 1.0
+
+    # obtain bbox
+    _h, _w = np.where(pha == 1)
+
+    whwh = [
+        _w.min().item(),
+        _h.min().item(),
+        _w.max().item(),
+        _h.max().item(),
+    ]
+
+    box = Bbox(whwh)
+
+    # scale box to 1.05
+    scale_box = box.scale(1.1, width=width, height=height)
+    return scale_box
+
+def infer_preprocess_image(
+    rgb_np,
+    mask,
+    intr,
+    pad_ratio,
+    bg_color,
+    max_tgt_size,
+    aspect_standard,
+    enlarge_ratio,
+    render_tgt_size,
+    multiply,
+    need_mask=True,
+):
+    """inferece
+    image, _, _ = preprocess_image(image_path, mask_path=None, intr=None, pad_ratio=0, bg_color=1.0,
+                                        max_tgt_size=896, aspect_standard=aspect_standard, enlarge_ratio=[1.0, 1.0],
+                                        render_tgt_size=source_size, multiply=14, need_mask=True)
+    """
+
+    # rgb = np.array(Image.open(rgb_path))
+    rgb = rgb_np[:,:,::-1]
+    rgb_raw = rgb.copy()
+
+    bbox = get_bbox(mask)
+    bbox_list = bbox.get_box()
+
+    rgb = rgb[bbox_list[1] : bbox_list[3], bbox_list[0] : bbox_list[2]]
+    mask = mask[bbox_list[1] : bbox_list[3], bbox_list[0] : bbox_list[2]]
+
+    h, w, _ = rgb.shape
+    assert w < h
+    cur_ratio = h / w
+    scale_ratio = cur_ratio / aspect_standard
+
+    target_w = int(min(w * scale_ratio, h))
+    offset_w = (target_w - w) // 2
+    # resize to target ratio.
+    if offset_w > 0:
+        rgb = np.pad(
+            rgb,
+            ((0, 0), (offset_w, offset_w), (0, 0)),
+            mode="constant",
+            constant_values=255,
+        )
+        mask = np.pad(
+            mask,
+            ((0, 0), (offset_w, offset_w)),
+            mode="constant",
+            constant_values=0,
+        )
+    else:
+        offset_w = -offset_w 
+        rgb = rgb[:,offset_w:-offset_w,:]
+        mask = mask[:,offset_w:-offset_w]
+
+    # resize to target ratio.
+
+    rgb = np.pad(
+        rgb,
+        ((0, 0), (offset_w, offset_w), (0, 0)),
+        mode="constant",
+        constant_values=255,
+    )
+
+    mask = np.pad(
+        mask,
+        ((0, 0), (offset_w, offset_w)),
+        mode="constant",
+        constant_values=0,
+    )
+
+    rgb = rgb / 255.0  # normalize to [0, 1]
+    mask = mask / 255.0
+
+    mask = (mask > 0.5).astype(np.float32)
+    rgb = rgb[:, :, :3] * mask[:, :, None] + bg_color * (1 - mask[:, :, None])
+
+    # resize to specific size require by preprocessor of smplx-estimator.
+    rgb = resize_image_keepaspect_np(rgb, max_tgt_size)
+    mask = resize_image_keepaspect_np(mask, max_tgt_size)
+
+    # crop image to enlarge human area.
+    rgb, mask, offset_x, offset_y = center_crop_according_to_mask(
+        rgb, mask, aspect_standard, enlarge_ratio
+    )
+    if intr is not None:
+        intr[0, 2] -= offset_x
+        intr[1, 2] -= offset_y
+
+    # resize to render_tgt_size for training
+
+    tgt_hw_size, ratio_y, ratio_x = calc_new_tgt_size_by_aspect(
+        cur_hw=rgb.shape[:2],
+        aspect_standard=aspect_standard,
+        tgt_size=render_tgt_size,
+        multiply=multiply,
+    )
+
+    rgb = cv2.resize(
+        rgb, dsize=(tgt_hw_size[1], tgt_hw_size[0]), interpolation=cv2.INTER_AREA
+    )
+    mask = cv2.resize(
+        mask, dsize=(tgt_hw_size[1], tgt_hw_size[0]), interpolation=cv2.INTER_AREA
+    )
+
+    if intr is not None:
+
+        # ******************** Merge *********************** #
+        intr = scale_intrs(intr, ratio_x=ratio_x, ratio_y=ratio_y)
+        assert (
+            abs(intr[0, 2] * 2 - rgb.shape[1]) < 2.5
+        ), f"{intr[0, 2] * 2}, {rgb.shape[1]}"
+        assert (
+            abs(intr[1, 2] * 2 - rgb.shape[0]) < 2.5
+        ), f"{intr[1, 2] * 2}, {rgb.shape[0]}"
+
+        # ******************** Merge *********************** #
+        intr[0, 2] = rgb.shape[1] // 2
+        intr[1, 2] = rgb.shape[0] // 2
+
+    rgb = torch.from_numpy(rgb).float().permute(2, 0, 1).unsqueeze(0)  # [1, 3, H, W]
+    mask = (
+        torch.from_numpy(mask[:, :, None]).float().permute(2, 0, 1).unsqueeze(0)
+    )  # [1, 1, H, W]
+    return rgb, mask, intr
+
+def parse_configs():
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config", type=str)
+    parser.add_argument("--infer", type=str)
+    args, unknown = parser.parse_known_args()
+
+    cfg = OmegaConf.create()
+    cli_cfg = OmegaConf.from_cli(unknown)
+
+    # parse from ENV
+    if os.environ.get("APP_INFER") is not None:
+        args.infer = os.environ.get("APP_INFER")
+    if os.environ.get("APP_MODEL_NAME") is not None:
+        cli_cfg.model_name = os.environ.get("APP_MODEL_NAME")
+
+    args.config = args.infer if args.config is None else args.config
+
+    if args.config is not None:
+        cfg_train = OmegaConf.load(args.config)
+        cfg.source_size = cfg_train.dataset.source_image_res
+        try:
+            cfg.src_head_size = cfg_train.dataset.src_head_size
+        except:
+            cfg.src_head_size = 112
+        cfg.render_size = cfg_train.dataset.render_image.high
+        _relative_path = os.path.join(
+            cfg_train.experiment.parent,
+            cfg_train.experiment.child,
+            os.path.basename(cli_cfg.model_name).split("_")[-1],
+        )
+
+        cfg.save_tmp_dump = os.path.join("exps", "save_tmp", _relative_path)
+        cfg.image_dump = os.path.join("exps", "images", _relative_path)
+        cfg.video_dump = os.path.join("exps", "videos", _relative_path)  # output path
+
+    if args.infer is not None:
+        cfg_infer = OmegaConf.load(args.infer)
+        cfg.merge_with(cfg_infer)
+        cfg.setdefault(
+            "save_tmp_dump", os.path.join("exps", cli_cfg.model_name, "save_tmp")
+        )
+        cfg.setdefault("image_dump", os.path.join("exps", cli_cfg.model_name, "images"))
+        cfg.setdefault(
+            "video_dump", os.path.join("dumps", cli_cfg.model_name, "videos")
+        )
+        cfg.setdefault("mesh_dump", os.path.join("dumps", cli_cfg.model_name, "meshes"))
+
+    cfg.motion_video_read_fps = 6
+    cfg.merge_with(cli_cfg)
+
+    cfg.setdefault("logger", "INFO")
+
+    assert cfg.model_name is not None, "model_name is required"
+
+    return cfg, cfg_train
+
+def _build_model(cfg):
+    from .lib_lhm.LHM.models import model_dict
+
+    hf_model_cls = wrap_model_hub(model_dict["human_lrm_sapdino_bh_sd3_5"])
+    model = hf_model_cls.from_pretrained(cfg.model_name)
+
+    return model
 
 class LHMReconstructionNode:
     """
@@ -37,26 +256,33 @@ class LHMReconstructionNode:
         return {
             "required": {
                 "input_image": ("IMAGE",),
-                "model_version": (["LHM-0.5B", "LHM-1B"], {
-                    "default": "LHM-0.5B"
-                }),
-                "motion_path": ("STRING", {
-                    "default": "./train_data/motion_video/mimo1/smplx_params"
-                }),
+                # "motion_path": ("STRING", {
+                #     "default": "./models/checkpoints/LHM/assets/ex5/smplx_params"
+                # }),
+                "motion": ("IMAGE",),
             }
         }
     
     RETURN_TYPES = ("IMAGE", "IMAGE")
-    RETURN_NAMES = ("processed_image", "animation")
+    # RETURN_TYPES = ("IMAGE",)
+    RETURN_NAMES = ("processed_image", "animation_images")
+    # RETURN_NAMES = ("processed_image",)
     FUNCTION = "execute"
     CATEGORY = "LHM"
     
     def __init__(self):
         """Initialize the node with empty model and components."""
 
+        os.environ.update({
+            "APP_ENABLED": "1",
+            "APP_MODEL_NAME": "./models/checkpoints/LHM/exps/releases/video_human_benchmark/human-lrm-500M/step_060000/",
+            "APP_INFER": "./custom_nodes/ComfyUI-LHM/lib_lhm/configs/inference/human-lrm-500M.yaml",
+            "APP_TYPE": "infer.human_lrm",
+            "NUMBA_THREADING_LAYER": 'omp',
+        })
         self.LHM_Model_Dict = {}
 
-    def execute(self, input_image, motion_path):
+    def execute(self, input_image, motion):
         """
         Main method to process an input image and generate human reconstruction outputs.
         
@@ -67,424 +293,235 @@ class LHMReconstructionNode:
         Returns:
             Tuple of (processed_image, animation_sequence)
         """   
-        # if 'pose_estimator' not in self.LHM_Model_Dict:
-        pass
+        if 'pose_estimator' not in self.LHM_Model_Dict:
+            pose_estimator = PoseEstimator(
+                "./models/checkpoints/LHM/pretrained_models/human_model_files/", device='cpu'
+            )
+            pose_estimator.to('cuda')
+            pose_estimator.device = 'cuda'
+            self.LHM_Model_Dict['pose_estimator'] = pose_estimator
+        
+        if 'face_detector' not in self.LHM_Model_Dict:
+            facedetector = VGGHeadDetector(
+                "./models/checkpoints/LHM/pretrained_models/gagatracker/vgghead/vgg_heads_l.trcd",
+                device='cpu',
+            )
+            # facedetector
+            self.LHM_Model_Dict['face_detector'] = facedetector
+        
+        if 'lhm' not in self.LHM_Model_Dict:
+            cfg, cfg_train = parse_configs()
+            lhm = _build_model(cfg)
+            lhm.to('cuda')
 
-    # Lifecycle hook when node is created in the graph
-    def onNodeCreated(self, node_id):
-        """Handle node creation event"""
-        self.node_id = node_id
-        # Register this instance for resource management
-        register_node_instance(node_id, self)
-        print(f"LHM node created: {node_id}")
-    
-    # Lifecycle hook when node is removed from the graph
-    def onNodeRemoved(self):
-        """Handle node removal event"""
-        if self.node_id:
-            # Unregister this instance
-            unregister_node_instance(self.node_id)
-            print(f"LHM node removed: {self.node_id}")
-            
-            # Clean up resources
-            self.model = None
-            self.pose_estimator = None
-            self.face_detector = None
-            
-            # Force garbage collection
-            import gc
-            gc.collect()
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
+            self.LHM_Model_Dict['cfg'] = cfg
+            self.LHM_Model_Dict['lhm'] = lhm
         
-    def reconstruct_human(self, input_image, model_version, motion_path, export_mesh, remove_background, recenter, preview_scale=1.0):
-        """
-        Main method to process an input image and generate human reconstruction outputs.
-        
-        Args:
-            input_image: Input image tensor from ComfyUI
-            model_version: Which LHM model version to use
-            motion_path: Path to the motion sequence data
-            export_mesh: Whether to export a 3D mesh
-            remove_background: Whether to remove the image background
-            recenter: Whether to recenter the human in the image
-            preview_scale: Scale factor for preview images
-            
-        Returns:
-            Tuple of (processed_image, animation_sequence, mesh_data)
-        """
-        # Check if we have the full LHM implementation
-        if not has_lhm:
-            print("Running LHM node in simplified mode - full implementation not available")
-            return self._run_simplified_mode(input_image)
-            
-        try:
-            # Send initial progress update
-            if has_prompt_server:
-                PromptServer.instance.send_sync("lhm.progress", {"value": 0, "text": "Starting reconstruction..."})
-            
-            # Convert input_image to numpy array
-            if isinstance(input_image, torch.Tensor):
-                input_image = input_image.cpu().numpy()
-            
-            # Convert to PIL Image for preprocessing
-            input_image = Image.fromarray((input_image[0] * 255).astype(np.uint8))
-            
-            # Initialize components if not already loaded or if model version changed
-            if has_prompt_server:
-                PromptServer.instance.send_sync("lhm.progress", {"value": 10, "text": "Initializing components..."})
-                
-            if self.model is None or self.last_model_version != model_version:
-                self.initialize_components(model_version)
-                self.last_model_version = model_version
-            
-            # Preprocess image
-            if has_prompt_server:
-                PromptServer.instance.send_sync("lhm.progress", {"value": 30, "text": "Preprocessing image..."})
-                
-            processed_image = self.preprocess_image(input_image, remove_background, recenter)
-            
-            # Run inference
-            if has_prompt_server:
-                PromptServer.instance.send_sync("lhm.progress", {"value": 50, "text": "Running inference..."})
-                
-            processed_image, animation = self.run_inference(processed_image, motion_path, export_mesh)
-            
-            # Apply preview scaling if needed
-            if preview_scale != 1.0:
-                # Scale the processed image and animation for preview
-                processed_image, animation = self.apply_preview_scaling(processed_image, animation, preview_scale)
-            
-            # Complete
-            if has_prompt_server:
-                PromptServer.instance.send_sync("lhm.progress", {"value": 100, "text": "Reconstruction complete!"})
-                
-            return processed_image, animation
-            
-        except Exception as e:
-            # Send error notification
-            error_msg = f"Error in LHM reconstruction: {str(e)}"
-            if has_prompt_server:
-                PromptServer.instance.send_sync("lhm.progress", {"value": 0, "text": error_msg})
-            print(error_msg)
-            # Return empty results
-            return self._run_simplified_mode(input_image)
+        print("Load weights Done.")
 
-    def _run_simplified_mode(self, input_image):
-        """
-        Run a simplified version when full functionality is not available.
-        Just returns the input image and a simulated animation.
-        """
-        print("Using simplified mode for LHM node")
-        if isinstance(input_image, torch.Tensor):
-            # Create animation by repeating the input frame
-            animation = input_image.unsqueeze(1)  # Add a time dimension
-            animation = animation.repeat(1, 5, 1, 1, 1)  # Repeat 5 frames
-            
-            return input_image, animation
-        else:
-            # Handle case where input is not a tensor
-            print("Error: Input is not a tensor")
-            return torch.zeros((1, 512, 512, 3)), torch.zeros((1, 5, 512, 512, 3))
 
-    def initialize_components(self, model_version):
-        """Initialize the LHM model and related components."""
-        try:
-            # Load configuration
-            if has_prompt_server:
-                PromptServer.instance.send_sync("lhm.progress", {"value": 12, "text": "Loading configuration..."})
-            
-            # Try multiple locations for the config file
-            config_paths = [
-                # Regular path assuming our node is directly in ComfyUI/custom_nodes
-                os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 
-                           "configs", f"{model_version.lower()}.yaml"),
-                
-                # Pinokio potential path
-                os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 
-                           "configs", f"{model_version.lower()}.yaml"),
-                
-                # Try a relative path based on the current working directory
-                os.path.join(os.getcwd(), "configs", f"{model_version.lower()}.yaml"),
-            ]
-            
-            config_path = None
-            for path in config_paths:
-                if os.path.exists(path):
-                    config_path = path
-                    break
-            
-            if config_path is None:
-                # Look for config file in other potential locations
-                lhm_locations = []
-                for path in sys.path:
-                    potential_config = os.path.join(path, "configs", f"{model_version.lower()}.yaml")
-                    if os.path.exists(potential_config):
-                        config_path = potential_config
-                        break
-                    if "LHM" in path or "lhm" in path.lower():
-                        lhm_locations.append(path)
-                
-                # Try LHM-specific locations
-                if config_path is None and lhm_locations:
-                    for lhm_path in lhm_locations:
-                        potential_config = os.path.join(lhm_path, "configs", f"{model_version.lower()}.yaml")
-                        if os.path.exists(potential_config):
-                            config_path = potential_config
-                            break
-            
-            if config_path is None:
-                raise FileNotFoundError(f"Config file for {model_version} not found.")
-            
-            self.cfg = OmegaConf.load(config_path)
-            
-            # Initialize pose estimator
-            if has_prompt_server:
-                PromptServer.instance.send_sync("lhm.progress", {"value": 15, "text": "Initializing pose estimator..."})
-                
-            self.pose_estimator = PoseEstimator()
-            
-            # Initialize face detector and parsing network
-            if has_prompt_server:
-                PromptServer.instance.send_sync("lhm.progress", {"value": 18, "text": "Setting up background removal..."})
-                
-            try:
-                from engine.SegmentAPI.SAM import SAM2Seg
-                self.face_detector = SAM2Seg()
-            except ImportError:
-                print("Warning: SAM2 not found, using rembg for background removal")
-                self.face_detector = None
-            
-            # Load LHM model
-            if has_prompt_server:
-                PromptServer.instance.send_sync("lhm.progress", {"value": 20, "text": "Loading LHM model..."})
-                
-            self.model = self.load_lhm_model(model_version)
-            
-        except Exception as e:
-            if has_prompt_server:
-                PromptServer.instance.send_sync("lhm.progress", {"value": 0, "text": f"Initialization error: {str(e)}"})
-            raise
+        # print(motion.shape, motion.max(), motion.dtype)
+        
 
-    def preprocess_image(self, image, remove_background, recenter):
-        """Preprocess the input image with background removal and recentering."""
-        # Convert PIL Image to numpy array
-        image_np = np.array(image)
-        
-        # Remove background if requested
-        if remove_background and has_rembg:
-            if has_prompt_server:
-                PromptServer.instance.send_sync("lhm.progress", {"value": 32, "text": "Removing background..."})
-                
-            if self.face_detector is not None:
-                # Use SAM2 for background removal
-                mask = self.face_detector.get_mask(image_np)
-            else:
-                # Use rembg as fallback
-                output = remove(image_np)
-                mask = output[:, :, 3] > 0
-        else:
-            mask = np.ones(image_np.shape[:2], dtype=bool)
-        
-        # Recenter if requested
-        if recenter:
-            if has_prompt_server:
-                PromptServer.instance.send_sync("lhm.progress", {"value": 35, "text": "Recentering image..."})
-                
-            image_np = center_crop_according_to_mask(image_np, mask)
-        
-        # Convert back to PIL Image
-        return Image.fromarray(image_np)
+        print("######start to process input#######")
 
-    def load_lhm_model(self, model_version):
-        """Load the LHM model weights and architecture."""
-        # Look for the model weights in various locations
-        model_paths = [
-            # Regular path
-            os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                      "checkpoints", f"{model_version.lower()}.pth"),
-            
-            # Pinokio potential path - custom_nodes parent dir
-            os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
-                      "checkpoints", f"{model_version.lower()}.pth"),
-            
-            # Pinokio models directory
-            os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
-                      "models", "checkpoints", f"{model_version.lower()}.pth"),
-            
-            # Try a relative path based on current working directory
-            os.path.join(os.getcwd(), "checkpoints", f"{model_version.lower()}.pth"),
-            
-            # ComfyUI models/checkpoints directory
-            os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
-                      "models", "checkpoints", f"{model_version.lower()}.pth"),
-        ]
-        
-        model_path = None
-        for path in model_paths:
-            if os.path.exists(path):
-                model_path = path
-                break
-        
-        if model_path is None:
-            # Look for weights file in other potential locations
-            lhm_locations = []
-            for path in sys.path:
-                potential_weights = os.path.join(path, "checkpoints", f"{model_version.lower()}.pth")
-                if os.path.exists(potential_weights):
-                    model_path = potential_weights
-                    break
-                if "LHM" in path or "lhm" in path.lower():
-                    lhm_locations.append(path)
-            
-            # Try LHM-specific locations
-            if model_path is None and lhm_locations:
-                for lhm_path in lhm_locations:
-                    potential_weights = os.path.join(lhm_path, "checkpoints", f"{model_version.lower()}.pth")
-                    if os.path.exists(potential_weights):
-                        model_path = potential_weights
-                        break
-                        
-        if model_path is None:
-            if has_prompt_server:
-                PromptServer.instance.send_sync("lhm.progress", {"value": 0, "text": "Error: Model weights not found!"})
-            error_msg = f"Model weights not found. Searched in: {model_paths}"
-            print(error_msg)
-            raise FileNotFoundError(error_msg)
-        
-        # Load model using the configuration
-        if has_prompt_server:
-            PromptServer.instance.send_sync("lhm.progress", {"value": 22, "text": "Building model architecture..."})
-            
-        model = self._build_model(self.cfg)
-        
-        if has_prompt_server:
-            PromptServer.instance.send_sync("lhm.progress", {"value": 25, "text": f"Loading model weights from {model_path}..."})
-            
-        model.load_state_dict(torch.load(model_path, map_location=self.device))
-        
-        if has_prompt_server:
-            PromptServer.instance.send_sync("lhm.progress", {"value": 28, "text": "Moving model to device..."})
-            
-        model.to(self.device)
-        model.eval()
-        
-        return model
+        task_uid = str(uuid.uuid1())
 
-    def _build_model(self, cfg):
-        """Build the LHM model architecture based on the configuration."""
-        # Create model instance based on the configuration
-        model = LHM(
-            img_size=cfg.MODEL.IMAGE_SIZE,
-            feature_scale=cfg.MODEL.FEATURE_SCALE,
-            use_dropout=cfg.MODEL.USE_DROPOUT,
-            drop_path=cfg.MODEL.DROP_PATH,
-            use_checkpoint=cfg.TRAIN.USE_CHECKPOINT,
-            checkpoint_num=cfg.TRAIN.CHECKPOINT_NUM,
+        os.makedirs(os.path.join("./lhm_temp_files", task_uid, 'imgs_png'), exist_ok=True)
+
+        for idx, motion_img in enumerate(motion):
+            motion_img = (motion_img.cpu().numpy()*255.0).astype(np.uint8)
+            Image.fromarray(motion_img).save(os.path.join("./lhm_temp_files", task_uid, 'imgs_png/{:05d}.png'.format(idx)))
+
+        motion_path = None
+        images_path = 
+        save_root = os.path.join("./lhm_temp_files", task_uid)
+
+        image_raw = os.path.join("./lhm_temp_files", task_uid, 'raw.png')
+
+        Image.fromarray((input_image.squeeze(0).cpu().numpy()*255.0).astype(np.uint8)).save(image_raw)
+
+        shape_pose = self.LHM_Model_Dict['pose_estimator'](image_raw)
+        assert shape_pose.is_full_body, f"The input image is illegal, {shape_pose.msg}"
+
+
+        # torch.Size([1, 1920, 1440, 3]) <class 'torch.Tensor'> torch.float32 torch.float32 tensor(1.) tensor(0.)
+        # print(input_image.shape, type(input_image), input_image.dtype, input_image.max(), input_image.min())
+
+        # remove the background of input image
+        input_np = (input_image.squeeze(0).detach().cpu().numpy()[:,:,::-1]*255.0).astype(np.uint8)
+        output_np = remove(input_np)
+        parsing_mask = output_np[:,:,3]
+        aspect_standard = 5.0 / 3
+
+        source_size = self.LHM_Model_Dict['cfg'].source_size
+        render_size = self.LHM_Model_Dict['cfg'].render_size
+        motion_img_need_mask = self.LHM_Model_Dict['cfg'].get("motion_img_need_mask", False)  # False
+        vis_motion = self.LHM_Model_Dict['cfg'].get("vis_motion", False)  # False
+
+        process_image, _, _ = infer_preprocess_image(
+            input_np,
+            mask=parsing_mask,
+            intr=None,
+            pad_ratio=0,
+            bg_color=1.0,
+            max_tgt_size=896,
+            aspect_standard=aspect_standard,
+            enlarge_ratio=[1.0, 1.0],
+            render_tgt_size=source_size,
+            multiply=14,
+            need_mask=True,
         )
-        
-        return model
 
-    def run_inference(self, processed_image, motion_path, export_mesh):
-        """Run inference with the LHM model and post-process results."""
-        # Convert processed image to tensor
-        if has_prompt_server:
-            PromptServer.instance.send_sync("lhm.progress", {"value": 55, "text": "Preparing tensors..."})
-            
-        image_tensor = torch.from_numpy(np.array(processed_image)).float() / 255.0
-        image_tensor = image_tensor.permute(2, 0, 1).unsqueeze(0).to(self.device)
-        
-        # Prepare motion sequence
-        if has_prompt_server:
-            PromptServer.instance.send_sync("lhm.progress", {"value": 60, "text": "Loading motion sequence..."})
-        
-        # Try to locate motion_path if it doesn't exist as-is
-        if not os.path.exists(motion_path):
-            # Try a few common locations
-            potential_paths = [
-                # Relative to ComfyUI
-                os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), motion_path),
-                # Relative to LHM project root
-                os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), motion_path),
-                # Relative to current working directory
-                os.path.join(os.getcwd(), motion_path),
-                # Try built-in motion paths in the LHM project
-                os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 
-                           "train_data", "motion_video", "mimo1", "smplx_params"),
-            ]
-            
-            for path in potential_paths:
-                if os.path.exists(path):
-                    motion_path = path
-                    print(f"Found motion path at: {motion_path}")
-                    break
-        
+        # print(process_image.dtype, process_image.max(), process_image.shape)
+        # Image.fromarray((process_image[0].permute(1,2,0).detach().cpu().numpy()*255.0).astype(np.uint8)).save("./test.png")
+
+        # detect the head
         try:
-            motion_seqs = prepare_motion_seqs(motion_path)
-        except Exception as e:
-            error_msg = f"Error loading motion sequence: {str(e)}"
-            print(error_msg)
-            if has_prompt_server:
-                PromptServer.instance.send_sync("lhm.progress", {"value": 60, "text": error_msg})
-            # Try to use a default motion sequence
-            try:
-                default_motion_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 
-                                               "train_data", "motion_video", "mimo1", "smplx_params")
-                motion_seqs = prepare_motion_seqs(default_motion_path)
-                print(f"Using default motion path: {default_motion_path}")
-            except Exception as e2:
-                error_msg = f"Error loading default motion sequence: {str(e2)}"
-                print(error_msg)
-                if has_prompt_server:
-                    PromptServer.instance.send_sync("lhm.progress", {"value": 60, "text": error_msg})
-                # Create a dummy motion sequence
-                motion_seqs = {'pred_vertices': torch.zeros((1, 30, 10475, 3), device=self.device)}
-        
-        # Run inference
-        if has_prompt_server:
-            PromptServer.instance.send_sync("lhm.progress", {"value": 70, "text": "Running model inference..."})
-            
-        with torch.no_grad():
-            results = self.model(image_tensor, motion_seqs)
-        
-        # Process results
-        if has_prompt_server:
-            PromptServer.instance.send_sync("lhm.progress", {"value": 90, "text": "Processing results..."})
-            
-        # Convert to ComfyUI format
-        processed_image = results['processed_image'].permute(0, 2, 3, 1)  # [B, H, W, C]
-        animation = results['animation'].permute(0, 1, 3, 4, 2)  # [B, T, H, W, C]
-        
-        return processed_image, animation
-            
-    def apply_preview_scaling(self, processed_image, animation, scale):
-        """Scale the results for preview purposes."""
-        if scale != 1.0:
-            # Scale the processed image
-            if isinstance(processed_image, torch.Tensor):
-                b, h, w, c = processed_image.shape
-                new_h, new_w = int(h * scale), int(w * scale)
-                # Need to convert to channels-first for interpolate
-                processed_image = processed_image.permute(0, 3, 1, 2)
-                processed_image = torch.nn.functional.interpolate(
-                    processed_image, size=(new_h, new_w), mode='bilinear'
+            rgb = torch.from_numpy(input_np).permute(2,0,1).to('cuda')
+            bbox = self.LHM_Model_Dict['face_detector'].detect_face(rgb)
+            head_rgb = rgb[:, int(bbox[1]) : int(bbox[3]), int(bbox[0]) : int(bbox[2])]
+            head_rgb = head_rgb.permute(1, 2, 0)
+            src_head_rgb = head_rgb.cpu().numpy()
+            print("w head input!")
+        except:
+            print("w/o head input!")
+            src_head_rgb = np.zeros((112, 112, 3), dtype=np.uint8)
+
+        # resize to dino size
+        try:
+            src_head_rgb = cv2.resize(
+                src_head_rgb,
+                dsize=(self.LHM_Model_Dict['cfg'].src_head_size, self.LHM_Model_Dict['cfg'].src_head_size),
+                interpolation=cv2.INTER_AREA,
+            )  # resize to dino size
+        except:
+            src_head_rgb = np.zeros(
+                (self.LHM_Model_Dict['cfg'].src_head_size, self.LHM_Model_Dict['cfg'].src_head_size, 3), dtype=np.uint8
+            )
+
+        src_head_rgb = (
+            torch.from_numpy(src_head_rgb / 255.0).float().permute(2, 0, 1).unsqueeze(0)
+        )  # [1, 3, H, W]s
+
+
+        motion_seq = prepare_motion_seqs(
+            motion_path,
+            None,
+            save_root=save_root, # this is used when we need to extract the motion
+            fps=30,
+            bg_color=1.0,
+            aspect_standard=aspect_standard,
+            enlarge_ratio=[1.0, 1, 0],
+            render_image_res=render_size,
+            multiply=16,
+            need_mask=motion_img_need_mask,
+            vis_motion=vis_motion,
+        )
+
+
+        camera_size = len(motion_seq["motion_seqs"])
+        shape_param = shape_pose.beta
+
+        device = "cuda"
+        dtype = torch.float32
+        shape_param = torch.tensor(shape_param, dtype=dtype).unsqueeze(0)
+
+        self.LHM_Model_Dict['lhm'].to(dtype)
+
+        smplx_params = motion_seq['smplx_params']
+        smplx_params['betas'] = shape_param.to(device)
+
+        gs_model_list, query_points, transform_mat_neutral_pose = self.LHM_Model_Dict['lhm'].infer_single_view(
+            process_image.unsqueeze(0).to(device, dtype),
+            src_head_rgb.unsqueeze(0).to(device, dtype),
+            None,
+            None,
+            render_c2ws=motion_seq["render_c2ws"].to(device),
+            render_intrs=motion_seq["render_intrs"].to(device),
+            render_bg_colors=motion_seq["render_bg_colors"].to(device),
+            smplx_params={
+                k: v.to(device) for k, v in smplx_params.items()
+            },
+        )
+
+        # rendering !!!!
+        start_time = time.time()
+        batch_dict = dict()
+        batch_size = 80  # avoid memeory out!
+
+        for batch_i in range(0, camera_size, batch_size):
+            with torch.no_grad():
+                # TODO check device and dtype
+                # dict_keys(['comp_rgb', 'comp_rgb_bg', 'comp_mask', 'comp_depth', '3dgs'])
+                keys = [
+                    "root_pose",
+                    "body_pose",
+                    "jaw_pose",
+                    "leye_pose",
+                    "reye_pose",
+                    "lhand_pose",
+                    "rhand_pose",
+                    "trans",
+                    "focal",
+                    "princpt",
+                    "img_size_wh",
+                    "expr",
+                ]
+                batch_smplx_params = dict()
+                batch_smplx_params["betas"] = shape_param.to(device)
+                batch_smplx_params['transform_mat_neutral_pose'] = transform_mat_neutral_pose
+                for key in keys:
+                    batch_smplx_params[key] = motion_seq["smplx_params"][key][
+                        :, batch_i : batch_i + batch_size
+                    ].to(device)
+
+                res = self.LHM_Model_Dict['lhm'].animation_infer(gs_model_list, query_points, batch_smplx_params,
+                    render_c2ws=motion_seq["render_c2ws"][
+                        :, batch_i : batch_i + batch_size
+                    ].to(device),
+                    render_intrs=motion_seq["render_intrs"][
+                        :, batch_i : batch_i + batch_size
+                    ].to(device),
+                    render_bg_colors=motion_seq["render_bg_colors"][
+                        :, batch_i : batch_i + batch_size
+                    ].to(device),
                 )
-                # Convert back to channels-last
-                processed_image = processed_image.permute(0, 2, 3, 1)
-            
-            # Scale the animation frames
-            if animation is not None and isinstance(animation, torch.Tensor):
-                b, f, h, w, c = animation.shape
-                new_h, new_w = int(h * scale), int(w * scale)
-                # Reshape to batch of images and convert to channels-first
-                animation = animation.reshape(b * f, h, w, c).permute(0, 3, 1, 2)
-                animation = torch.nn.functional.interpolate(
-                    animation, size=(new_h, new_w), mode='bilinear'
-                )
-                # Convert back to channels-last and reshape to animation
-                animation = animation.permute(0, 2, 3, 1).reshape(b, f, new_h, new_w, c)
-        
-        return processed_image, animation 
+
+            for accumulate_key in ["comp_rgb", "comp_mask"]:
+                if accumulate_key not in batch_dict:
+                    batch_dict[accumulate_key] = []
+                batch_dict[accumulate_key].append(res[accumulate_key].detach().cpu())
+            del res
+            torch.cuda.empty_cache()
+
+        for accumulate_key in ["comp_rgb", "comp_mask"]:
+            batch_dict[accumulate_key] = torch.cat(batch_dict[accumulate_key], dim=0)
+
+        print(f"time elapsed: {time.time() - start_time}")
+        rgb = batch_dict["comp_rgb"].detach().cpu().numpy()  # [Nv, H, W, 3], 0-1
+        mask = batch_dict["comp_mask"].detach().cpu().numpy()  # [Nv, H, W, 3], 0-1
+        mask[mask < 0.5] = 0.0
+
+        rgb = rgb * mask + (1 - mask) * 1
+        rgb = np.clip(rgb * 255, 0, 255).astype(np.uint8)
+
+        if vis_motion:
+            # print(rgb.shape, motion_seq["vis_motion_render"].shape)
+
+            vis_ref_img = np.tile(
+                cv2.resize(vis_ref_img, (rgb[0].shape[1], rgb[0].shape[0]))[
+                    None, :, :, :
+                ],
+                (rgb.shape[0], 1, 1, 1),
+            )
+            rgb = np.concatenate(
+                [rgb, motion_seq["vis_motion_render"], vis_ref_img], axis=2
+            )
+
+        print(rgb.shape, rgb.max())
+
+        return process_image.permute(0,2,3,1), torch.from_numpy(rgb)/255.0
 
 
 NODE_CLASS_MAPPINGS = {

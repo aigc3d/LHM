@@ -213,7 +213,7 @@ class ResNetArcFace(nn.Module):
         block="IRBlock",
         layers=[2, 2, 2, 2],
         use_se=False,
-        pretrain_model="./pretrained_models/arcface_resnet18.pth",
+        pretrain_model="./models/checkpoints/LHM/pretrained_models/arcface_resnet18.pth",
     ):
         if block == "IRBlock":
             block = IRBlock

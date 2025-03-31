@@ -19,9 +19,9 @@ import kornia
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from accelerate.logging import get_logger
+# from accelerate.logging import get_logger
 
-logger = get_logger(__name__)
+# logger = get_logger(__name__)
 
 
 class DPTHead(nn.Module):
@@ -126,7 +126,7 @@ class Dinov2FusionWrapper(nn.Module):
             self._freeze()
 
     def _freeze(self):
-        logger.warning(f"======== Freezing Dinov2FusionWrapper ========")
+        # logger.warning(f"======== Freezing Dinov2FusionWrapper ========")
         self.model.eval()
         for name, param in self.model.named_parameters():
             param.requires_grad = False
@@ -170,7 +170,7 @@ class Dinov2FusionWrapper(nn.Module):
 
         dinov2_hub = import_module(".dinov2.hub.backbones", package=__package__)
         model_fn = getattr(dinov2_hub, model_name)
-        logger.debug(f"Modulation dim for Dinov2 is {modulation_dim}.")
+        # logger.debug(f"Modulation dim for Dinov2 is {modulation_dim}.")
         model = model_fn(modulation_dim=modulation_dim, pretrained=pretrained)
         return model
 

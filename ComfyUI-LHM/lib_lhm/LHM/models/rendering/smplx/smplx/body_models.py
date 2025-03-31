@@ -2644,6 +2644,7 @@ def create(
         SMPLX, MANO or FLAME
     """
 
+    print(model_type, model_path)
     # If it's a folder, assume
     if osp.isdir(model_path):
         model_path = os.path.join(model_path, model_type)

@@ -21,11 +21,11 @@ from tqdm.auto import tqdm
 from engine.pose_estimation.pose_estimator import PoseEstimator
 from engine.SegmentAPI.base import Bbox
 
-try:
-    from engine.SegmentAPI.SAM import SAM2Seg
-except:
-    print("\033[31mNo SAM2 found! Try using rembg to remove the background. This may slightly degrade the quality of the results!\033[0m")
-    from rembg import remove
+# try:
+#     from engine.SegmentAPI.SAM import SAM2Seg
+# except:
+#     print("\033[31mNo SAM2 found! Try using rembg to remove the background. This may slightly degrade the quality of the results!\033[0m")
+from rembg import remove
 
 from LHM.datasets.cam_utils import (
     build_camera_principle,
@@ -327,10 +327,10 @@ class HumanLRMInferrer(Inferrer):
         self.pose_estimator = PoseEstimator(
             "./pretrained_models/human_model_files/", device=avaliable_device()
         )
-        try:
-            self.parsingnet = SAM2Seg()
-        except:
-            self.parsingnet = None 
+        # try:
+        #     self.parsingnet = SAM2Seg()
+        # except:
+        self.parsingnet = None 
 
         self.model: ModelHumanLRM = self._build_model(self.cfg).to(self.device)
 

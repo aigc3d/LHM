@@ -13,7 +13,7 @@ model:
     encoder_freeze: False 
 
     fine_encoder_type: sapiens
-    fine_encoder_model_name: "./pretrained_models/sapiens/pretrained/checkpoints/sapiens_1b/sapiens_1b_epoch_173_torchscript.pt2"  # sapiens pretrained model path
+    fine_encoder_model_name: "./models/checkpoints/LHM/pretrained_models/sapiens/pretrained/checkpoints/sapiens_1b/sapiens_1b_epoch_173_torchscript.pt2"  # sapiens pretrained model path
     fine_encoder_feat_dim: 1536 # sapiens embeding size 1024
     fine_encoder_freeze: True 
 
@@ -33,7 +33,7 @@ model:
     encoder_grad_ckpt: true
 
     # for gs renderer
-    human_model_path: "./pretrained_models/human_model_files"
+    human_model_path: "./models/checkpoints/LHM/pretrained_models/human_model_files"
     smplx_subdivide_num: 1
     smplx_type: "smplx_2"
     gs_query_dim: 1024

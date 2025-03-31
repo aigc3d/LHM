@@ -385,7 +385,7 @@ class IOConsumer(threading.Thread):
 
 class ESRGANEasyModel:
     def __init__(
-        self, model_path="./pretrained_models/RealESRGAN_x4plus.pth", face_enhance=True
+        self, model_path="./models/checkpoints/LHM/pretrained_models/RealESRGAN_x4plus.pth", face_enhance=True
     ):
         model = RRDBNet(
             num_in_ch=3,
@@ -407,7 +407,7 @@ class ESRGANEasyModel:
                     # model_path will be updated
                     model_path = load_file_from_url(
                         url=url,
-                        model_dir=os.path.join("./", "pretrained_models"),
+                        model_dir=os.path.join("./models/checkpoints/LHM", "pretrained_models"),
                         progress=True,
                         file_name=None,
                     )

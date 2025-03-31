@@ -272,7 +272,7 @@ class SMPLX_Mesh(object):
     def register_constrain_prior(self):
         """As video cannot provide insufficient supervision for the canonical space, we add some human prior to constrain the rotation. Although it is a trick, it is very effective."""
         constrain_body = np.load(
-            "./pretrained_models/voxel_grid/human_prior_constrain.npz"
+            "./models/checkpoints/LHM/pretrained_models/voxel_grid/human_prior_constrain.npz"
         )["masks"]
 
         self.constrain_body_vertex_idx = np.where(constrain_body > 0)[0]
@@ -488,7 +488,7 @@ class SMPLXVoxelMeshModel(nn.Module):
 
     def dense_sample(self, body_face_ratio, dense_sample_points):
 
-        buff_path = f"./pretrained_models/dense_sample_points/{self.cano_pose_type}_{dense_sample_points}.ply"
+        buff_path = f"./models/checkpoints/LHM/pretrained_models/dense_sample_points/{self.cano_pose_type}_{dense_sample_points}.ply"
 
         if os.path.exists(buff_path):
             dense_sample_pts, _ = load_ply(buff_path)
@@ -669,10 +669,10 @@ class SMPLXVoxelMeshModel(nn.Module):
         coordinates = coordinates.view(-1, 3).float()
         coordinates = coordinates.cuda()
 
-        if os.path.exists(f"./pretrained_models/voxel_grid/voxel_{voxel_size}.pth"):
+        if os.path.exists(f"./models/checkpoints/LHM/pretrained_models/voxel_grid/voxel_{voxel_size}.pth"):
             print(f"load voxel_grid voxel_{voxel_size}.pth")
             voxel_flat = torch.load(
-                os.path.join(f"pretrained_models/voxel_grid/voxel_{voxel_size}.pth"),
+                os.path.join(f"./models/checkpoints/LHM/pretrained_models/voxel_grid/voxel_{voxel_size}.pth"),
                 map_location=avaliable_device(),
             )
         else:
@@ -682,7 +682,7 @@ class SMPLXVoxelMeshModel(nn.Module):
 
             torch.save(
                 voxel_flat,
-                os.path.join(f"pretrained_models/voxel_grid/voxel_{voxel_size}.pth"),
+                os.path.join(f"./models/checkpoints/LHM/pretrained_models/voxel_grid/voxel_{voxel_size}.pth"),
             )
 
         N, LBS_F = voxel_flat.shape
@@ -1533,7 +1533,7 @@ def read_smplx_param(smplx_data_root, shape_param_file, batch_size=1, device="cu
 def test():
     import cv2
 
-    human_model_path = "./pretrained_models/human_model_files"
+    human_model_path = "./models/checkpoints/LHM/pretrained_models/human_model_files"
     gender = "male"
     # gender = "neutral"
 
@@ -1688,7 +1688,7 @@ def generate_smplx_point():
                 data[k] = data[k][:, 0]
         return data
 
-    human_model_path = "./pretrained_models/human_model_files"
+    human_model_path = "./models/checkpoints/LHM/pretrained_models/human_model_files"
     gender = "neutral"
     subdivide_num = 1
     smplx_model = SMPLXVoxelMeshModel(
