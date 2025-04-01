@@ -1,0 +1,13 @@
+{
+    "main_pass":
+    [
+        "-n", "-c:v", "hevc_nvenc",
+        "-vtag", "hvc1",
+        "-pix_fmt", ["pix_fmt", ["yuv420p", "yuv420p10le", "rgba"]]
+    ],
+    "audio_pass": ["-c:a", "aac"],
+    "bitrate": ["bitrate","INT", {"default": 10, "min": 1, "max": 999, "step": 1 }],
+    "megabit": ["megabit","BOOLEAN", {"default": true}],
+    "save_metadata": ["save_metadata", "BOOLEAN", {"default": true}],
+    "extension": "mp4"
+}

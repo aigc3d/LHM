@@ -1,0 +1,16 @@
+{
+    "main_pass":
+    [
+        "-n", "-c:v", "libx265",
+        "-vtag", "hvc1",
+        "-pix_fmt", ["pix_fmt", ["yuv420p10le", "yuv420p"]],
+        "-crf", ["crf","INT", {"default": 22, "min": 0, "max": 100, "step": 1}],
+        "-preset", "medium",
+        "-vf", "colorspace=all=bt709:iall=bt601-6-625:fast=1",
+        "-colorspace", "1", "-color_primaries", "1", "-color_trc", "1",
+        "-x265-params", "log-level=quiet"
+    ],
+    "audio_pass": ["-c:a", "aac"],
+    "save_metadata": ["save_metadata", "BOOLEAN", {"default": true}],
+    "extension": "mp4"
+}

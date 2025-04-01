@@ -1,0 +1,2 @@
+# These must be installed before building mmpose
+numpy
