@@ -9,7 +9,6 @@ pip install -r requirements.txt
 pip uninstall basicsr
 pip install git+https://github.com/XPixelGroup/BasicSR
 
-cd ..
 # install pytorch3d
 pip install "git+https://github.com/facebookresearch/pytorch3d.git"
 
