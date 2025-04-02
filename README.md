@@ -20,11 +20,12 @@ cd ComfyUI
 ```bash 
 git clone --branch feat/comfyui https://github.com/aigc3d/LHM
 
-# link the nodes under the custom_nodes
-ln -s ./LHM/ComfyUI-LHM ./custom_nodes/ComfyUI-LHM
-ln -s ./LHM/ComfyUI-VideoHelperSuite ./custom_nodes/ComfyUI-VideoHelperSuite
+# link the nodes under the custom_nodes(using absolute path!)
+# If you install ComfyUI in /home/workspace, then /path/to equals /home/workspace.
+ln -s /path/to/ComfyUI/LHM/ComfyUI-LHM /path/to/ComfyUI/custom_nodes/ComfyUI-LHM
+ln -s /path/to/ComfyUI/LHM/ComfyUI-VideoHelperSuite /path/to/ComfyUI/custom_nodes/ComfyUI-VideoHelperSuite
 
-# install requirements
+# install packages
 cd LHM && bash install_cu118.sh && cd ..
 ```
 
@@ -43,3 +44,6 @@ cd ../..
 # start the ComfyUI
 python main.py 
 ```
+
+#### How to use
+Click 'Workflow' on the ComfyUI-FrondEnd and open LHM_WorkFlow.json, Upload your input image and driven video and click 'Run'!

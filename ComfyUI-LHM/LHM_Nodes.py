@@ -522,7 +522,7 @@ class LHMReconstructionNode:
             )
 
         print(rgb.shape, rgb.max())
-
+        del self.LHM_Model_Dict['lhm'] # memory explosion
         return process_image.permute(0,2,3,1), torch.from_numpy(rgb)/255.0
 
 

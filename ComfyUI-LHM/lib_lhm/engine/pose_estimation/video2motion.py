@@ -568,3 +568,4 @@ if __name__ == "__main__":
         fov=FOV,
     )
     pipeline(opt.video_path, opt.output_path)
+    del pipeline

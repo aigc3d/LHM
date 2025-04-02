@@ -17,3 +17,10 @@ pip install git+https://github.com/ashawkey/diff-gaussian-rasterization/
 
 # install simple-knn
 pip install git+https://github.com/camenduru/simple-knn/
+
+pip install torchsde onnxruntime numpy==1.25.0
+
+pip install git+https://github.com/mattloper/chumpy
+
+pip install -v -e ./custom_nodes/ComfyUI-LHM/lib_lhm/engine/pose_estimation/third-party/ViTPose
+pip install ultralytics mmcv-full
