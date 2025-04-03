@@ -309,15 +309,12 @@ class LHMReconstructionNode:
             # facedetector
             self.LHM_Model_Dict['face_detector'] = facedetector
         
-        if 'lhm' not in self.LHM_Model_Dict:
+        if 'cfg' not in self.LHM_Model_Dict:
             cfg, cfg_train = parse_configs()
-            lhm = _build_model(cfg)
-            lhm.to('cuda')
-
             self.LHM_Model_Dict['cfg'] = cfg
-            self.LHM_Model_Dict['lhm'] = lhm
+
         
-        print("Load weights Done.")
+        # print("Load weights Done.")
 
         # print(motion.shape, motion.max(), motion.dtype)
         print("MOTIONPATH:", motion)
@@ -420,6 +417,11 @@ class LHMReconstructionNode:
             need_mask=motion_img_need_mask,
             vis_motion=vis_motion,
         )
+        
+        if 'lhm' not in self.LHM_Model_Dict:
+            lhm = _build_model(cfg)
+            lhm.to('cuda')
+            self.LHM_Model_Dict['lhm'] = lhm
 
 
         camera_size = len(motion_seq["motion_seqs"])
@@ -522,7 +524,7 @@ class LHMReconstructionNode:
             )
 
         print(rgb.shape, rgb.max())
-        del self.LHM_Model_Dict['lhm'] # memory explosion
+        del self.LHM_Model_Dict['lhm'] # avoid memory explosion
         return process_image.permute(0,2,3,1), torch.from_numpy(rgb)/255.0
 
 
