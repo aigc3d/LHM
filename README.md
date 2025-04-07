@@ -40,9 +40,14 @@
 
 ## 🚀 Getting Started
 
+
+We provide a [video](https://youtu.be/Q56Jllz33tk) that teaches us how to install LHM and LHM-ComfyUI step by step on YouTube, submitted by [softicelee2](https://github.com/softicelee2).
+
 We provide a [video](https://www.bilibili.com/video/BV18So4YCESk/) that teaches us how to install LHM step by step on bilibili, submitted by 站长推荐推荐.
 
 We provide a [video](https://www.bilibili.com/video/BV1J9Z1Y2EiJ/) that teaches us how to install LHM-ComfyUI step by step on bilibili, submitted by 站长推荐推荐.
+
+
 
 
 ### Build from Docker
@@ -285,7 +290,7 @@ This work is built on many amazing research works and open-source projects:
 
 Thanks for their excellent works and great contribution to 3D generation and 3D digital human area.
 
-We would like to express our sincere gratitude to [站长推荐推荐](https://space.bilibili.com/175365958?spm_id_from=333.337.0.0)  for the installation tutorial video on bilibili.
+We would like to express our sincere gratitude to [站长推荐推荐](https://space.bilibili.com/175365958?spm_id_from=333.337.0.0) and [softicelee2](https://github.com/softicelee2) for the installation tutorial video on bilibili.
 
 ## More Works
 Welcome to follow our team other interesting works:
