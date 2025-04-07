@@ -15,7 +15,8 @@
 </p>
 
 ## 📢 最新动态
-**[2025年4月3日]** LHM-500M-HF & LHM-1B-HF 模型开源, 更鲁棒更快，现在支持半身图片输入拉！<br>
+**[2025年4月7日]** 我们开源了另一个项目 [LAM](https://github.com/aigc3d/LAM) ! "单图秒级打造超写实3D数字人!" <br>
+**[2025年4月3日]** LHM-500M-HF & LHM-1B-HF 模型开源, 更鲁棒更快，现在支持半身图片输入啦！<br>
 **[2025年4月2日]** 我们正式发布了官方的 ComfyUI 节点和自定义视频动画工作流程！🔥🔥🔥 欢迎尝试使用 [ComfyUI](https://github.com/aigc3d/LHM/tree/feat/comfyui) 分支！<br>
 **[2025年3月26日]** ModelScope 开源了，快来使用我们的线上资源吧 🔥🔥🔥!<br>
 **[2025年3月24日]** SAM2难装 😭😭😭? 👉 那就用rembg吧!<br>
@@ -39,7 +40,7 @@
 
 ## 🚀 快速开始
 
-我们提供了一个 [B站视频](https://www.bilibili.com/video/BV18So4YCESk/) 教大家如何一步一步的安装LHM.
+我们提供了一个 [B站视频](https://www.bilibili.com/video/BV18So4YCESk/) 教大家如何一步一步的安装LHM. <br>
 我们提供了一个 [B站视频](https://www.bilibili.com/video/BV1J9Z1Y2EiJ/) 教大家如何一步一步的安装LHM-ComfyUI.
 
 
@@ -199,7 +200,7 @@ python ./app.py --model_name LHM-1B
 ```
 
 ### 🏃 推理流程
-我们现在支持半身图输入拉!
+我们现在支持半身图输入啦!
 <img src="./assets/half_input.gif" width="75%" height="auto"/>
 
 ```bash
@@ -267,7 +268,7 @@ python ./tools/metrics/compute_ssim_lpips.py -f1 ${gt_folder} -f2 ${results_fold
 - [DreamGaussian](https://github.com/dreamgaussian/dreamgaussian)
 
 感谢这些杰出工作对3D生成和数字人领域的重要贡献。
-我们要特别感谢[站长推荐推荐](https://space.bilibili.com/175365958?spm_id_from=333.337.0.0), 他无私地做了一条B站视频来交大家如何安装LHM.
+我们要特别感谢[站长推荐推荐](https://space.bilibili.com/175365958?spm_id_from=333.337.0.0), 他无私地做了一条B站视频来教大家如何安装LHM.
 
 
 ## 更多工作 
