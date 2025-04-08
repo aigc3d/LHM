@@ -419,7 +419,7 @@ class LHMReconstructionNode:
         )
         
         if 'lhm' not in self.LHM_Model_Dict:
-            lhm = _build_model(cfg)
+            lhm = _build_model(self.LHM_Model_Dict['cfg'])
             lhm.to('cuda')
             self.LHM_Model_Dict['lhm'] = lhm
 
