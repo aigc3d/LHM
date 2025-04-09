@@ -15,6 +15,7 @@
 </p>
 
 ## 📢 最新动态
+**[2025年4月9日]** 我们提供了一套详细的教程，指导大家如何在Windows系统中安装[LHM-ComfyUI-tutorial](https://github.com/aigc3d/LHM/blob/feat/comfyui/Windows11_install.md)!<br>
 **[2025年4月9日]** 我们开源了整套视频处理工具来构建您自己的训练数据 [LHM_Track](https://github.com/aigc3d/LHM_Track).<br>
 **[2025年4月7日]** 我们开源了另一个项目 [LAM](https://github.com/aigc3d/LAM), "单图秒级打造超写实3D数字人" <br>
 **[2025年4月3日]** LHM-500M-HF & LHM-1B-HF 模型开源, 更鲁棒更快，现在支持半身图片输入啦！<br>
