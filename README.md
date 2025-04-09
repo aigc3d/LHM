@@ -17,6 +17,7 @@
 
 如果您熟悉中文，可以[阅读中文版本的README](./README_CN.md)
 ## 📢 Latest Updates
+**[April 9, 2025]** we build a detailed tutorial to guide users to install [LHM-ComfyUI](https://github.com/aigc3d/LHM/blob/feat/comfyui/Windows11_install.md) on Windows step by step!<br>
 **[April 9, 2025]** We release the video processing pipeline to create your training data [LHM_Track](https://github.com/aigc3d/LHM_Track)!<br>
 **[April 7, 2025]** We release another project [LAM](https://github.com/aigc3d/LAM) ! "Build 3D Interactive Chatting Avatar with One Image in Seconds!"<br>
 **[April 3, 2025]** We release LHM-500M-HF & LHM-1B-HF, which supports half-body input, making it more stable and efficient.<br>
