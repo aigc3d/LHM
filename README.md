@@ -22,7 +22,6 @@
 **[April 3, 2025]** We release LHM-500M-HF & LHM-1B-HF, which supports half-body input, making it more stable and efficient.<br>
 **[April 2, 2025]** We release official ComfyUI Nodes and workflow for custom video animation! 🔥🔥🔥 Try the [ComfyUI](https://github.com/aigc3d/LHM/tree/feat/comfyui) branch.<br>
 **[March 25, 2025]** The online demo of ModelScope Space has been released: 500M model Only.<br>
-**[March 24, 2025]** Is SAM2 difficult to install😭😭😭? 👉 It is compatible with rembg!<br>
 **[March 20, 2025]** Release video motion processing pipeline<br>
 **[March 19, 2025]** Local Gradio App.py optimization:  Faster and More Stable 🔥🔥🔥 <br>
 **[March 15, 2025]** Inference Time Optimization:  30% Faster <br>
