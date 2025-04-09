@@ -1,5 +1,8 @@
 #### Overview
 ![](https://virutalbuy-public.oss-cn-hangzhou.aliyuncs.com/share/aigc3d/data/LHM/ComfyUI/UI.png)
+
+The following install guide is by default for linux. For windows users, thing become a little bit complicate. I prepare a standalone install guide for it [Windows Install](https://github.com/aigc3d/LHM/blob/feat/comfyui/Windows11_install.md)
+
 #### How to Install
 This repo contains the required nodes and UI settings to run LHM on custom videos and custom input human images. Let's see how it going~
 
