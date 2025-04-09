@@ -3,7 +3,7 @@
 #### Base software
 - Python3.10: Download from [official website](https://www.python.org/ftp/python/3.10.11/python-3.10.11-amd64.exe)  rather than Windows Store(which has a path length limit by default which will cause error)
 - Visual Studio 2019: 2022 will cause some compilation error on cuda operators. Download it from [techspot](https://www.techspot.com/downloads/7241-visual-studio-2019.html)
-- Nvidia Cuda 11.8: It is on my case. You can install other version accroding to your convenience. [CUDA ToolKits](https://developer.nvidia.com/cuda-11-8-0-download-archive?target_os=Windows)
+- Nvidia Cuda 11.8: It is on my case. You can install other versions accroding to your convenience. [CUDA ToolKits](https://developer.nvidia.com/cuda-11-8-0-download-archive?target_os=Windows)
 - Git: Download and install from [Git official](https://git-scm.com/)
 
 #### Install Steps
@@ -19,7 +19,7 @@ After Open "x64 Native Tools", we can install the dependency step by step:
     ```bash
     git clone --branch feat/comfyui https://github.com/aigc3d/LHM
     ```
-    - Copy the nodes into ComfyUI, this need you to manually "Ctrl+C" and "Ctrl+V" to copy "ComfyUI-LHM" && "ComfyUI-VideoHelperSuite" into "ComfyUI/custom_nodes/"
+    - Copy the nodes into ComfyUI, this need you to manually "Ctrl+C" and "Ctrl+V" to copy "ComfyUI-LHM" && "ComfyUI-VideoHelperSuite" into "ComfyUI\custom_nodes\"
 
 - Downloading
     - Open this [link](https://virutalbuy-public.oss-cn-hangzhou.aliyuncs.com/share/aigc3d/data/LHM/ComfyUI/LHM_ComfyUI.zip)
