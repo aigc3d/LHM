@@ -17,6 +17,8 @@
 
 如果您熟悉中文，可以[阅读中文版本的README](./README_CN.md)
 ## 📢 Latest Updates
+**[April 10, 2025]** We release the motion extraction node and animation infer node of LHM on ComfyUI. With a extracted offline motion, you can generate a 10s animation clip in 20s!!! Update your [ComfyUI](https://github.com/aigc3d/LHM/tree/feat/comfyui) branch right now.🔥🔥🔥 
+<br>
 **[April 9, 2025]** we build a detailed tutorial to guide users to install [LHM-ComfyUI](https://github.com/aigc3d/LHM/blob/feat/comfyui/Windows11_install.md) on Windows step by step!<br>
 **[April 9, 2025]** We release the video processing pipeline to create your training data [LHM_Track](https://github.com/aigc3d/LHM_Track)!<br>
 **[April 7, 2025]** We release another project [LAM](https://github.com/aigc3d/LAM) ! "Build 3D Interactive Chatting Avatar with One Image in Seconds!"<br>
