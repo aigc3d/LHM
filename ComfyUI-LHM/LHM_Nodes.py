@@ -24,6 +24,7 @@ from lib_lhm.LHM.runners.infer.utils import (
     center_crop_according_to_mask,
     prepare_motion_seqs,
     resize_image_keepaspect_np,
+    predict_motion_seqs_from_images,
 )
 
 from lib_lhm.LHM.utils.hf_hub import wrap_model_hub
@@ -363,7 +364,7 @@ class LHMReconstructionNode:
             mask=parsing_mask,
             intr=None,
             pad_ratio=0,
-            bg_color=1.0,
+            bg_color=np.array([0,1,0]),
             max_tgt_size=896,
             aspect_standard=aspect_standard,
             enlarge_ratio=[1.0, 1.0],
@@ -409,7 +410,7 @@ class LHMReconstructionNode:
             motion,
             save_root=save_root, # this is used when we need to extract the motion
             fps=30,
-            bg_color=1.0,
+            bg_color=np.array([0,1,0]),
             aspect_standard=aspect_standard,
             enlarge_ratio=[1.0, 1, 0],
             render_image_res=render_size,
@@ -527,11 +528,52 @@ class LHMReconstructionNode:
         del self.LHM_Model_Dict['lhm'] # avoid memory explosion
         return process_image.permute(0,2,3,1), torch.from_numpy(rgb)/255.0
 
+class LHMMotionNode:
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "motion": ("STRING",),
+            }
+        }
+    
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("save_path",)
+    FUNCTION = "execute"
+    CATEGORY = "LHM"
+    
+    def __init__(self):
+        """Initialize the node with empty model and components."""
+        self.Motion_Model_Dict = {}
+
+    def execute(self, motion):
+        
+        # Get some params
+        print("MOTIONPATH:", motion)
+
+        print("######start to process input#######")
+
+        task_uid = str(uuid.uuid1())
+        
+        save_root =  os.path.join("./lhm_motion_temp_files", task_uid)
+
+        os.makedirs(save_root, exist_ok=True)
+
+        motion_seqs_dir, image_folder = predict_motion_seqs_from_images(
+            motion, save_root
+        )
+
+        print(motion_seqs_dir)
+
+        return (motion_seqs_dir,)
 
 NODE_CLASS_MAPPINGS = {
     "LHM": LHMReconstructionNode,
+    "LHM_Motion_Extract": LHMMotionNode
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "LHM": "Large Animatable Human Model",
+    "LHM_Motion_Extract": "Motion Extraction(LHM)"
 }
