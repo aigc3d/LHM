@@ -49,4 +49,18 @@ python main.py
 ```
 
 #### How to use
+
+we provide full pipeline or you can infer from offline motion. We also provide a offline motion extraction pipeline.
+
+##### Standalone Motion Extract Workflow
+```bash
+# add showtext node
+ln -s /path/to/ComfyUI/LHM/ComfyUI-Show-Text /path/to/ComfyUI/custom_nodes/ComfyUI-Show-Text
+```
+Open LHM_Motion_Extraction.json, the extracted motion path will be shown after executation. This workflow is designed to avoid extracting motion params each time when you want to make videos based on the same motion. It will save much time in such case.
+
+##### Animation from offline extracted motion
+ Open LHM_Animation_Infer.json, paste specific offline motion path, upload your human image and click run. 
+
+##### Full Pipeline
 Click 'Workflow' on the ComfyUI-FrondEnd and open LHM_WorkFlow.json, Upload your input image and driven video and click 'Run'!
