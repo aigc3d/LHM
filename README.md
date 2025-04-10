@@ -256,6 +256,9 @@ bash ./inference_mesh.sh ${MODEL_NAME}
    # python ./engine/pose_estimation/video2motion.py --video_path ./train_data/demo.mp4 --output_path ./train_data/custom_motion
 
    python ./engine/pose_estimation/video2motion.py --video_path ${VIDEO_PATH} --output_path ${OUTPUT_PATH}
+
+   # for half-body video, e.g. ./train_data/xiaoming.mp4, we recommend to use command as below:
+  python ./engine/pose_estimation/video2motion.py --video_path ${VIDEO_PATH} --output_path ${OUTPUT_PATH} --fitting_steps 100 0
    ```
 
 - Use the motion to drive the avatar.

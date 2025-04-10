@@ -27,7 +27,8 @@ def gmof(x, sigma):
     """
     x_squared = x**2
     sigma_squared = sigma**2
-    return (sigma_squared * x_squared) / (sigma_squared + x_squared)
+    # avoid overflow, origin: (sigma_squared * x_squared) / (sigma_squared + x_squared)
+    return (sigma_squared / (sigma_squared + x_squared)) * x_squared
 
 
 def compute_jitter(x):
@@ -113,7 +114,7 @@ class FastFirstFittingLoss(torch.nn.Module):
             (pred_keypoints - input_keypoints[..., :-1]) ** 2 * joints_conf
         ) / scale
 
-        reprojection_error = reprojection_error.sum() / mask.sum()
+        reprojection_error = reprojection_error.sum() / (mask.sum() + 1)
 
         dist_diff = compute_jitter(transl).mean()
         pose_diff = compute_jitter(root_orient).mean()
@@ -227,12 +228,15 @@ class SMPLifyLoss(torch.nn.Module):
 
 class TemporalSMPLify:
 
-    def __init__(self, smpl=None, lr=1e-2, num_iters=5, num_steps=100, device=None):
+    def __init__(self, smpl=None, lr=1e-2, num_steps=None, device=None):
 
         self.smpl = smpl
         self.lr = lr
-        self.num_iters = num_iters
-        self.num_steps = num_steps
+        if num_steps is None:
+            self.num_steps = [30, 50]
+        else:
+            assert isinstance(num_steps, list) and len(num_steps) == 2
+            self.num_steps = num_steps
         self.device = device
 
         resutls = get_mapping("smplx", "coco_wholebody")
@@ -247,8 +251,9 @@ class TemporalSMPLify:
                 self.src_idx.append(_src_idx)
                 self.dst_idx.append(_dst_idx)
 
-        # first fitting: optimize global_orient and translation with only 4 joints, left_shoulder ,right_shoulder, left_hip, right_hip
-        first_fitting_dst_idx = [5, 6, 11, 12]
+        # first fitting: optimize global_orient and translation with only 7 joints:
+        # nose, left_ear, right_ear, left_shoulder ,right_shoulder, left_hip, right_hip
+        first_fitting_dst_idx = [0, 3, 4, 5, 6, 11, 12]
         self.first_fitting_dst_idx = []
         self.first_fitting_src_idx = []
         for _dst_idx in first_fitting_dst_idx:
@@ -345,7 +350,7 @@ class TemporalSMPLify:
             j3d_idx=self.first_fitting_src_idx,
         )
 
-        for j in (j_bar := tqdm(range(30))):
+        for j in (j_bar := tqdm(range(self.num_steps[0]))):
             loss = first_step_loss(params[0], params[3], j3d, k2d_orient_fitting, bbox)
             optimizer.zero_grad()
 
@@ -373,7 +378,7 @@ class TemporalSMPLify:
             optimizer, self.smpl, params, bbox, keypoints_2d
         )
 
-        for j in (j_bar := tqdm(range(self.num_steps))):
+        for j in (j_bar := tqdm(range(self.num_steps[1]))):
             optimizer.zero_grad()
             loss = optimizer.step(closure)
             msg = f"Loss: {loss.item():.1f}"
@@ -382,5 +387,14 @@ class TemporalSMPLify:
         poses = torch.cat([params[0].detach(), params[1].detach()], dim=1)
         betas = params[2].detach()
         transl = params[3].detach()
+        if (
+            torch.isnan(poses).any()
+            or torch.isnan(betas).any()
+            or torch.isnan(transl).any()
+            or torch.isinf(poses).any()
+            or torch.isinf(betas).any()
+            or torch.isinf(transl).any()
+        ):
+            return rotation_6d_to_axis_angle(init_poses), init_betas, init_transl
 
         return rotation_6d_to_axis_angle(poses), betas, transl

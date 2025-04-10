@@ -239,6 +239,9 @@ bash ./inference_mesh.sh ${MODEL_NAME}
 
    python ./engine/pose_estimation/video2motion.py --video_path ${VIDEO_PATH} --output_path ${OUTPUT_PATH}
 
+   # 对于半身视频，比如./train_data/xiaoming.mp4，我们推荐使用以下命令：
+   python ./engine/pose_estimation/video2motion.py --video_path ${VIDEO_PATH} --output_path ${OUTPUT_PATH} --fitting_steps 100 0
+
    ```
 
 - 使用提取的动作数据驱动数字人
