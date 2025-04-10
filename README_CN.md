@@ -15,6 +15,7 @@
 </p>
 
 ## 📢 最新动态
+**[2025年4月9日]** 我们开源了独立的运动提取节点和动画推理节点，利用已经提取好的运动参数，动画推理节点可以在20s内产生10s的视频!!! 参考[ComfyUI](https://github.com/aigc3d/LHM/tree/feat/comfyui) 更新你的节点！<br>
 **[2025年4月9日]** 我们提供了一套详细的教程，指导大家如何在Windows系统中安装[LHM-ComfyUI-tutorial](https://github.com/aigc3d/LHM/blob/feat/comfyui/Windows11_install.md)!<br>
 **[2025年4月9日]** 我们开源了整套视频处理工具来构建您自己的训练数据 [LHM_Track](https://github.com/aigc3d/LHM_Track).<br>
 **[2025年4月7日]** 我们开源了另一个项目 [LAM](https://github.com/aigc3d/LAM), "单图秒级打造超写实3D数字人" <br>
