@@ -364,7 +364,7 @@ class LHMReconstructionNode:
             mask=parsing_mask,
             intr=None,
             pad_ratio=0,
-            bg_color=np.array([0,1,0]),
+            bg_color=1,
             max_tgt_size=896,
             aspect_standard=aspect_standard,
             enlarge_ratio=[1.0, 1.0],
@@ -410,7 +410,7 @@ class LHMReconstructionNode:
             motion,
             save_root=save_root, # this is used when we need to extract the motion
             fps=30,
-            bg_color=np.array([0,1,0]),
+            bg_color=1,
             aspect_standard=aspect_standard,
             enlarge_ratio=[1.0, 1, 0],
             render_image_res=render_size,
@@ -568,12 +568,266 @@ class LHMMotionNode:
 
         return (motion_seqs_dir,)
 
+class LHMOfflineNode:
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "input_image": ("IMAGE",),
+                "motion": ("STRING",),
+            }
+        }
+    
+    RETURN_TYPES = ("IMAGE", "IMAGE")
+    RETURN_NAMES = ("processed_image", "animation_images")
+    FUNCTION = "execute"
+    CATEGORY = "LHM"
+    
+    def __init__(self):
+        """Initialize the node with empty model and components."""
+
+        os.environ.update({
+            "APP_ENABLED": "1",
+            "APP_MODEL_NAME": "./models/checkpoints/LHM/exps/releases/video_human_benchmark/human-lrm-500M/step_060000/",
+            "APP_INFER": "./custom_nodes/ComfyUI-LHM/lib_lhm/configs/inference/human-lrm-500M.yaml",
+            "APP_TYPE": "infer.human_lrm",
+            "NUMBA_THREADING_LAYER": 'omp',
+        })
+        self.LHM_Model_Dict = {}
+
+    def execute(self, input_image, motion):
+        """
+        Main method to process an input image and generate human reconstruction outputs.
+        
+        Args:
+            input_image: Input image tensor from ComfyUI
+            motion_path: Path to the motion sequence data
+            
+        Returns:
+            Tuple of (processed_image, animation_sequence)
+        """   
+        if 'pose_estimator' not in self.LHM_Model_Dict:
+            pose_estimator = PoseEstimator(
+                "./models/checkpoints/LHM/pretrained_models/human_model_files/", device='cpu'
+            )
+            pose_estimator.to('cuda')
+            pose_estimator.device = 'cuda'
+            self.LHM_Model_Dict['pose_estimator'] = pose_estimator
+        
+        if 'face_detector' not in self.LHM_Model_Dict:
+            facedetector = VGGHeadDetector(
+                "./models/checkpoints/LHM/pretrained_models/gagatracker/vgghead/vgg_heads_l.trcd",
+                device='cpu',
+            )
+            # facedetector
+            self.LHM_Model_Dict['face_detector'] = facedetector
+        
+        if 'cfg' not in self.LHM_Model_Dict:
+            cfg, cfg_train = parse_configs()
+            self.LHM_Model_Dict['cfg'] = cfg
+
+        print("MOTIONPATH:", motion)
+
+        print("######start to process input#######")
+
+        task_uid = str(uuid.uuid1())
+
+        os.makedirs(os.path.join("./lhm_temp_files", task_uid), exist_ok=True)
+
+        motion_path = motion
+
+        save_root = os.path.join("./lhm_temp_files", task_uid)
+
+        image_raw = os.path.join("./lhm_temp_files", task_uid, 'raw.png')
+
+        Image.fromarray((input_image.squeeze(0).cpu().numpy()*255.0).astype(np.uint8)).save(image_raw)
+
+        shape_pose = self.LHM_Model_Dict['pose_estimator'](image_raw)
+
+        assert shape_pose.is_full_body, f"The input image is illegal, {shape_pose.msg}"
+
+        # remove the background of input image
+        input_np = (input_image.squeeze(0).detach().cpu().numpy()[:,:,::-1]*255.0).astype(np.uint8)
+        output_np = remove(input_np)
+        parsing_mask = output_np[:,:,3]
+        aspect_standard = 5.0 / 3
+
+        source_size = self.LHM_Model_Dict['cfg'].source_size
+        render_size = self.LHM_Model_Dict['cfg'].render_size
+        motion_img_need_mask = self.LHM_Model_Dict['cfg'].get("motion_img_need_mask", False)  # False
+        vis_motion = self.LHM_Model_Dict['cfg'].get("vis_motion", False)  # False
+
+        process_image, _, _ = infer_preprocess_image(
+            input_np,
+            mask=parsing_mask,
+            intr=None,
+            pad_ratio=0,
+            bg_color=1,
+            max_tgt_size=896,
+            aspect_standard=aspect_standard,
+            enlarge_ratio=[1.0, 1.0],
+            render_tgt_size=source_size,
+            multiply=14,
+            need_mask=True,
+        )
+
+        # detect the head
+        try:
+            rgb = torch.from_numpy(input_np).permute(2,0,1).to('cuda')
+            bbox = self.LHM_Model_Dict['face_detector'].detect_face(rgb)
+            head_rgb = rgb[:, int(bbox[1]) : int(bbox[3]), int(bbox[0]) : int(bbox[2])]
+            head_rgb = head_rgb.permute(1, 2, 0)
+            src_head_rgb = head_rgb.cpu().numpy()
+            print("w head input!")
+        except:
+            print("w/o head input!")
+            src_head_rgb = np.zeros((112, 112, 3), dtype=np.uint8)
+
+        # resize to dino size
+        try:
+            src_head_rgb = cv2.resize(
+                src_head_rgb,
+                dsize=(self.LHM_Model_Dict['cfg'].src_head_size, self.LHM_Model_Dict['cfg'].src_head_size),
+                interpolation=cv2.INTER_AREA,
+            )  # resize to dino size
+        except:
+            src_head_rgb = np.zeros(
+                (self.LHM_Model_Dict['cfg'].src_head_size, self.LHM_Model_Dict['cfg'].src_head_size, 3), dtype=np.uint8
+            )
+
+        src_head_rgb = (
+            torch.from_numpy(src_head_rgb / 255.0).float().permute(2, 0, 1).unsqueeze(0)
+        )  # [1, 3, H, W]s
+
+
+        motion_seq = prepare_motion_seqs(
+            motion_path,
+            None,
+            save_root=save_root, # this is used when we need to extract the motion
+            fps=30,
+            bg_color=1,
+            aspect_standard=aspect_standard,
+            enlarge_ratio=[1.0, 1, 0],
+            render_image_res=render_size,
+            multiply=16,
+            need_mask=motion_img_need_mask,
+            vis_motion=vis_motion,
+        )
+        
+        if 'lhm' not in self.LHM_Model_Dict:
+            lhm = _build_model(self.LHM_Model_Dict['cfg'])
+            lhm.to('cuda')
+            self.LHM_Model_Dict['lhm'] = lhm
+
+
+        camera_size = len(motion_seq["motion_seqs"])
+        shape_param = shape_pose.beta
+
+        device = "cuda"
+        dtype = torch.float32
+        shape_param = torch.tensor(shape_param, dtype=dtype).unsqueeze(0)
+
+        self.LHM_Model_Dict['lhm'].to(dtype)
+
+        smplx_params = motion_seq['smplx_params']
+        smplx_params['betas'] = shape_param.to(device)
+
+        gs_model_list, query_points, transform_mat_neutral_pose = self.LHM_Model_Dict['lhm'].infer_single_view(
+            process_image.unsqueeze(0).to(device, dtype),
+            src_head_rgb.unsqueeze(0).to(device, dtype),
+            None,
+            None,
+            render_c2ws=motion_seq["render_c2ws"].to(device),
+            render_intrs=motion_seq["render_intrs"].to(device),
+            render_bg_colors=motion_seq["render_bg_colors"].to(device),
+            smplx_params={
+                k: v.to(device) for k, v in smplx_params.items()
+            },
+        )
+
+        # rendering !!!!
+        start_time = time.time()
+        batch_dict = dict()
+        batch_size = 80  # avoid memeory out!
+
+        for batch_i in range(0, camera_size, batch_size):
+            with torch.no_grad():
+                # TODO check device and dtype
+                # dict_keys(['comp_rgb', 'comp_rgb_bg', 'comp_mask', 'comp_depth', '3dgs'])
+                keys = [
+                    "root_pose",
+                    "body_pose",
+                    "jaw_pose",
+                    "leye_pose",
+                    "reye_pose",
+                    "lhand_pose",
+                    "rhand_pose",
+                    "trans",
+                    "focal",
+                    "princpt",
+                    "img_size_wh",
+                    "expr",
+                ]
+                batch_smplx_params = dict()
+                batch_smplx_params["betas"] = shape_param.to(device)
+                batch_smplx_params['transform_mat_neutral_pose'] = transform_mat_neutral_pose
+                for key in keys:
+                    batch_smplx_params[key] = motion_seq["smplx_params"][key][
+                        :, batch_i : batch_i + batch_size
+                    ].to(device)
+
+                res = self.LHM_Model_Dict['lhm'].animation_infer(gs_model_list, query_points, batch_smplx_params,
+                    render_c2ws=motion_seq["render_c2ws"][
+                        :, batch_i : batch_i + batch_size
+                    ].to(device),
+                    render_intrs=motion_seq["render_intrs"][
+                        :, batch_i : batch_i + batch_size
+                    ].to(device),
+                    render_bg_colors=motion_seq["render_bg_colors"][
+                        :, batch_i : batch_i + batch_size
+                    ].to(device),
+                )
+
+            for accumulate_key in ["comp_rgb", "comp_mask"]:
+                if accumulate_key not in batch_dict:
+                    batch_dict[accumulate_key] = []
+                batch_dict[accumulate_key].append(res[accumulate_key].detach().cpu())
+            del res
+            torch.cuda.empty_cache()
+
+        for accumulate_key in ["comp_rgb", "comp_mask"]:
+            batch_dict[accumulate_key] = torch.cat(batch_dict[accumulate_key], dim=0)
+
+        print(f"time elapsed: {time.time() - start_time}")
+        rgb = batch_dict["comp_rgb"].detach().cpu().numpy()  # [Nv, H, W, 3], 0-1
+        mask = batch_dict["comp_mask"].detach().cpu().numpy()  # [Nv, H, W, 3], 0-1
+        mask[mask < 0.5] = 0.0
+
+        rgb = rgb * mask + (1 - mask) * 1
+        rgb = np.clip(rgb * 255, 0, 255).astype(np.uint8)
+
+        if vis_motion:
+            # print(rgb.shape, motion_seq["vis_motion_render"].shape)
+
+            vis_ref_img = np.tile(
+                cv2.resize(vis_ref_img, (rgb[0].shape[1], rgb[0].shape[0]))[
+                    None, :, :, :
+                ],
+                (rgb.shape[0], 1, 1, 1),
+            )
+            rgb = np.concatenate(
+                [rgb, motion_seq["vis_motion_render"], vis_ref_img], axis=2
+            )
+        return process_image.permute(0,2,3,1), torch.from_numpy(rgb)/255.0
+
 NODE_CLASS_MAPPINGS = {
     "LHM": LHMReconstructionNode,
-    "LHM_Motion_Extract": LHMMotionNode
+    "LHM_Motion_Extract": LHMMotionNode,
+    "LHMOffline": LHMOfflineNode,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "LHM": "Large Animatable Human Model",
-    "LHM_Motion_Extract": "Motion Extraction(LHM)"
+    "LHM_Motion_Extract": "Motion Extraction(LHM)",
+    "LHMOffline": "Large Animatable Human Model(Offline)",
 }
