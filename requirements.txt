@@ -27,6 +27,7 @@ opencv_python
 opencv_python_headless
 Pillow==10.4.0
 plyfile
+pydantic==2.10.6
 pygltflib==1.16.2
 pyrender==0.1.45
 PyYAML==6.0.1
