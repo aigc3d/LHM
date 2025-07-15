@@ -26,7 +26,7 @@
     | LHM-500M |  5 |    1024    |    16 |      40K |    512     | dinov2_vits14_reg & Sapiens-1B | 1024 | 18G GPU, 24G VRAM |
     | LHM-500M-HF  | 5 |    1024    |    16      |      40K       |    512 | dinov2_vitb14_reg & Sapiens-1B |      1024 | 18G GPU, 24G VRAM |
     | LHM-1B |   15 |   1024    |     16      |      40K |    1024 | dinov2_vitb14_reg & Sapiens-1B | 1024 | 22G GPU, 24G VRAM |
-    | LHM-1B-HF |   15|   1024    |     16      |   40K |    1024 | dinov2_vitb14_reg & Sapiens-1B | 1024 | 222G GPU, 24G VRAM |
+    | LHM-1B-HF |   15|   1024    |     16      |   40K |    1024 | dinov2_vitb14_reg & Sapiens-1B | 1024 | 22G GPU, 24G VRAM |
 
 - Model architecture (with motion & save_memory; maximum supported length for 720P video is 20s)
 
