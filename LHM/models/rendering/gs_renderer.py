@@ -1202,7 +1202,7 @@ class GS3DRenderer(nn.Module):
             import cv2
 
             cv2.imwrite(
-                "fuck.png",
+                "comp_rgb_debug.png",
                 (out["comp_rgb"].detach().cpu().numpy()[0, ..., ::-1] * 255).astype(
                     np.uint8
                 ),
@@ -1280,7 +1280,7 @@ class GS3DRenderer(nn.Module):
 
             for i in range(4):
                 cv2.imwrite(
-                    f"fuck_{i}.png",
+                    f"comp_rgb_debug_{i}.png",
                     (out["comp_rgb"].detach().cpu().numpy()[i, ..., ::-1] * 255).astype(
                         np.uint8
                     ),
