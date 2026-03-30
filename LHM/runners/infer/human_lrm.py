@@ -19,6 +19,7 @@ from PIL import Image
 from tqdm.auto import tqdm
 
 from engine.pose_estimation.pose_estimator import PoseEstimator
+from engine.pose_estimation.video2motion import Video2MotionPipeline
 from engine.SegmentAPI.base import Bbox
 
 # from LHM.utils.model_download_utils import AutoModelQuery
@@ -287,10 +288,14 @@ def parse_configs():
     cfg = OmegaConf.create()
     cli_cfg = OmegaConf.from_cli(unknown)
 
-    if "export_mesh" not in cli_cfg: 
+    if "export_mesh" not in cli_cfg:
         cli_cfg.export_mesh = None
-    if "export_video" not in cli_cfg: 
+    if "export_video" not in cli_cfg:
         cli_cfg.export_video= None
+    if "motion_video_path" not in cli_cfg:
+        cli_cfg.motion_video_path = None
+    elif cli_cfg.motion_video_path == "None":
+        cli_cfg.motion_video_path = None
 
     query_model = AutoModelQuery()
 
@@ -341,6 +346,12 @@ def parse_configs():
     cfg.motion_video_read_fps = 6
     cfg.merge_with(cli_cfg)
 
+    # Handle "None" strings from CLI
+    if cfg.get("motion_seqs_dir", None) == "None":
+        cfg.motion_seqs_dir = None
+    if cfg.get("motion_img_dir", None) == "None":
+        cfg.motion_img_dir = None
+
     cfg.setdefault("logger", "INFO")
 
     assert cfg.model_name is not None, "model_name is required"
@@ -382,6 +393,40 @@ class HumanLRMInferrer(Inferrer):
         self.model: ModelHumanLRM = self._build_model(self.cfg).to(self.device)
 
         self.motion_dict = dict()
+
+        self.video2motion = None
+        if self.cfg.motion_video_path is not None:
+            self._init_video2motion()
+
+    def _init_video2motion(self):
+        device = avaliable_device()
+        self.video2motion = Video2MotionPipeline(
+            './pretrained_models/human_model_files',
+            fitting_steps=[30, 50],
+            device=device,
+            kp_mode='vitpose',
+            visualize=False,
+            pad_ratio=0.2,
+            fov=60,
+        )
+
+    def _process_motion_video(self, video_path):
+        """Run video2motion pipeline on a video file and return the smplx_params directory."""
+        if self.video2motion is None:
+            self._init_video2motion()
+
+        video_name = os.path.splitext(os.path.basename(video_path))[0]
+        output_path = os.path.join('./train_data/custom_motion', video_name)
+
+        smplx_params_dir = os.path.join(output_path, 'smplx_params')
+        if os.path.exists(smplx_params_dir) and len(os.listdir(smplx_params_dir)) > 0:
+            print(f"Using cached motion params from: {smplx_params_dir}")
+            return smplx_params_dir
+
+        os.makedirs(output_path, exist_ok=True)
+        smplx_params_dir = self.video2motion(video_path, output_path, is_file_only=True)
+        print(f"Video2motion completed. SMPL-X params saved to: {smplx_params_dir}")
+        return smplx_params_dir
 
     def _build_model(self, cfg):
         from LHM.models import model_dict
@@ -813,6 +858,15 @@ class HumanLRMInferrer(Inferrer):
         )
 
     def infer(self):
+
+        # If a motion video path is provided, run video2motion first
+        motion_seqs_dir = self.cfg.get("motion_seqs_dir", None)
+        if self.cfg.motion_video_path is not None:
+            video_path = self.cfg.motion_video_path
+            assert os.path.isfile(video_path), f"Motion video not found: {video_path}"
+            print(f"Processing motion video: {video_path}")
+            motion_seqs_dir = self._process_motion_video(video_path)
+            self.cfg.motion_seqs_dir = motion_seqs_dir
 
         image_paths = []
         if os.path.isfile(self.cfg.image_input):
