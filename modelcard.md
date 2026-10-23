@@ -52,5 +52,6 @@
 
 ## License
 
-- The model weights are released under the [Creative Commons Attribution-NonCommercial 4.0 International License](LICENSE_WEIGHT).
-- They are provided for research purposes only, and CANNOT be used commercially.
+The project maintainer clarified in [issue #175](https://github.com/aigc3d/LHM/issues/175#issuecomment-4747846880) that the released LHM model weights are provided under Apache-2.0 and may be used commercially. The repository's source code is also licensed under Apache-2.0; see [`LICENSE`](LICENSE).
+
+LHM is built upon SMPL-X and FLAME. Their model parameters are subject to separate, non-commercial terms unless separate commercial authorization is obtained from the corresponding rights holders. Commercial users are responsible for obtaining any necessary SMPL-X and/or FLAME licenses when their use case depends on those assets.
